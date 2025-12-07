@@ -19,13 +19,20 @@ export const ReviewEditor = ({ isAuthenticated }: ReviewEditorProps) => {
   const { userId } = useAuth();
   const router = useRouter();
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [reviewData, setReviewData] = useState({
+  const [reviewData, setReviewData] = useState<any>({
+    platform: null,
     reviewerName: "",
     rating: 5,
     reviewText: "",
-    reviewTitle: "",
     date: new Date().toISOString().split("T")[0],
     profilePictureUrl: "",
+    // Google-specific
+    localGuideLevel: 0,
+    numberOfReviews: 0,
+    numberOfPhotos: 0,
+    isNew: false,
+    // Amazon-specific
+    reviewTitle: "",
     verified: false,
     helpfulVotes: 0,
   });
@@ -120,11 +127,11 @@ export const ReviewEditor = ({ isAuthenticated }: ReviewEditorProps) => {
         <div className="lg:sticky lg:top-8 h-fit">
           <div className="">
             <h2 className="text-2xl font-semibold mb-4">Preview</h2>
-            <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[400px]">
+            <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px]">
               {selectedPlatform ? (
                 <ReviewPreview
                   platform={selectedPlatform}
-                  reviewData={reviewData}
+                  reviewData={{ ...reviewData, platform: selectedPlatform }}
                 />
               ) : (
                 <div className="text-center text-muted-foreground">

@@ -7,17 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface ReviewData {
-  reviewerName: string;
-  rating: number;
-  reviewText: string;
-  reviewTitle: string;
-  date: string;
-  profilePictureUrl: string;
-  verified: boolean;
-  helpfulVotes: number;
-}
+import type { ReviewData, GoogleReviewData } from "@/types/review";
 
 interface ReviewFormProps {
   reviewData: ReviewData;
@@ -30,8 +20,8 @@ export const ReviewForm = ({
   onChange,
   platform,
 }: ReviewFormProps) => {
-  const updateField = (field: keyof ReviewData, value: unknown) => {
-    onChange({ ...reviewData, [field]: value });
+  const updateField = (field: string, value: unknown) => {
+    onChange({ ...reviewData, [field]: value } as ReviewData);
   };
 
   return (
@@ -46,12 +36,67 @@ export const ReviewForm = ({
         />
       </div>
 
+      {/* Google-specific fields */}
+      {platform === "google" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="localGuideLevel">
+              Local Guide Level (0-10, 0 = not a local guide)
+            </Label>
+            <Input
+              id="localGuideLevel"
+              type="number"
+              min={0}
+              max={10}
+              value={(reviewData as GoogleReviewData).localGuideLevel || 0}
+              onChange={(e) =>
+                updateField("localGuideLevel", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="numberOfReviews">Number of Reviews</Label>
+            <Input
+              id="numberOfReviews"
+              type="number"
+              min={0}
+              value={(reviewData as GoogleReviewData).numberOfReviews || 0}
+              onChange={(e) =>
+                updateField("numberOfReviews", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="numberOfPhotos">Number of Photos</Label>
+            <Input
+              id="numberOfPhotos"
+              type="number"
+              min={0}
+              value={(reviewData as GoogleReviewData).numberOfPhotos || 0}
+              onChange={(e) =>
+                updateField("numberOfPhotos", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="isNew" className="cursor-pointer">
+              Show "NEW" Badge
+            </Label>
+            <Switch
+              id="isNew"
+              checked={(reviewData as GoogleReviewData).isNew || false}
+              onCheckedChange={(checked) => updateField("isNew", checked)}
+            />
+          </div>
+        </>
+      )}
+
       {(platform === "amazon" || platform === "trustpilot") && (
         <div className="space-y-2">
           <Label htmlFor="reviewTitle">Review Title</Label>
           <Input
             id="reviewTitle"
-            value={reviewData.reviewTitle}
+            value={(reviewData as any).reviewTitle || ""}
             onChange={(e) => updateField("reviewTitle", e.target.value)}
             placeholder="Great product!"
           />
@@ -120,16 +165,20 @@ export const ReviewForm = ({
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <Label htmlFor="verified" className="cursor-pointer">
-          Verified Purchase/Badge
-        </Label>
-        <Switch
-          id="verified"
-          checked={reviewData.verified}
-          onCheckedChange={(checked) => updateField("verified", checked)}
-        />
-      </div>
+      {(platform === "amazon" ||
+        platform === "facebook" ||
+        platform === "trustpilot") && (
+        <div className="flex items-center justify-between">
+          <Label htmlFor="verified" className="cursor-pointer">
+            Verified Purchase/Badge
+          </Label>
+          <Switch
+            id="verified"
+            checked={(reviewData as any).verified || false}
+            onCheckedChange={(checked) => updateField("verified", checked)}
+          />
+        </div>
+      )}
 
       {platform === "amazon" && (
         <div className="space-y-2">
@@ -138,7 +187,7 @@ export const ReviewForm = ({
             id="helpfulVotes"
             type="number"
             min={0}
-            value={reviewData.helpfulVotes}
+            value={(reviewData as any).helpfulVotes || 0}
             onChange={(e) =>
               updateField("helpfulVotes", parseInt(e.target.value) || 0)
             }
