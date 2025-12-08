@@ -91,7 +91,9 @@ export const ReviewForm = ({
         </>
       )}
 
-      {(platform === "amazon" || platform === "trustpilot") && (
+      {(platform === "amazon" ||
+        platform === "trustpilot" ||
+        platform === "tripadvisor") && (
         <div className="space-y-2">
           <Label htmlFor="reviewTitle">Review Title</Label>
           <Input
@@ -180,7 +182,7 @@ export const ReviewForm = ({
         </div>
       )}
 
-      {platform === "amazon" && (
+      {(platform === "amazon" || platform === "tripadvisor") && (
         <div className="space-y-2">
           <Label htmlFor="helpfulVotes">Helpful Votes</Label>
           <Input
@@ -191,6 +193,18 @@ export const ReviewForm = ({
             onChange={(e) =>
               updateField("helpfulVotes", parseInt(e.target.value) || 0)
             }
+          />
+        </div>
+      )}
+
+      {platform === "tripadvisor" && (
+        <div className="space-y-2">
+          <Label htmlFor="contributionLevel">Contribution Level</Label>
+          <Input
+            id="contributionLevel"
+            value={(reviewData as any).contributionLevel || ""}
+            onChange={(e) => updateField("contributionLevel", e.target.value)}
+            placeholder="e.g., 18 contributions or Level 6 Contributor"
           />
         </div>
       )}

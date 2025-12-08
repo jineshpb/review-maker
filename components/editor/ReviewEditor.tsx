@@ -35,6 +35,8 @@ export const ReviewEditor = ({ isAuthenticated }: ReviewEditorProps) => {
     reviewTitle: "",
     verified: false,
     helpfulVotes: 0,
+    // TripAdvisor-specific
+    contributionLevel: "",
   });
 
   const handleDownload = async () => {
@@ -127,7 +129,7 @@ export const ReviewEditor = ({ isAuthenticated }: ReviewEditorProps) => {
         <div className="lg:sticky lg:top-8 h-fit">
           <div className="">
             <h2 className="text-2xl font-semibold mb-4">Preview</h2>
-            <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px]">
+            <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px] overflow-hidden">
               {selectedPlatform ? (
                 <ReviewPreview
                   platform={selectedPlatform}

@@ -1,0 +1,459 @@
+{
+  "info": {
+    "name": "Review Screenshot API",
+    "description": "API collection for Review Screenshot App",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "clerkJWT",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string",
+      "description": "Get from: useAuth().getToken() in your app, or Clerk Dashboard → Users → Sessions"
+    },
+    {
+      "key": "clerkSession",
+      "value": "YOUR__SESSION_COOKIE_VALUE",
+      "type": "string",
+      "description": "Alternative: Get from browser DevTools → Application → Cookies → __session"
+    }
+  ],
+  "item": [
+    {
+      "name": "Drafts",
+      "item": [
+        {
+          "name": "Get All Drafts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts"]
+            },
+            "description": "Get all drafts for the current user. Optional query param: ?platform=google"
+          }
+        },
+        {
+          "name": "Get Drafts by Platform",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts?platform=google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts"],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "google"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"google\",\n  \"reviewData\": {\n    \"platform\": \"google\",\n    \"reviewerName\": \"John Doe\",\n    \"rating\": 5,\n    \"reviewText\": \"Amazing service! Highly recommend.\",\n    \"date\": \"2024-01-15\",\n    \"profilePictureUrl\": \"\",\n    \"localGuideLevel\": 5,\n    \"numberOfReviews\": 127,\n    \"numberOfPhotos\": 23,\n    \"isNew\": false\n  },\n  \"name\": \"My Google Review Draft\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts"]
+            }
+          }
+        },
+        {
+          "name": "Get Draft by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "YOUR_DRAFT_ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Draft",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewData\": {\n    \"platform\": \"google\",\n    \"reviewerName\": \"John Doe Updated\",\n    \"rating\": 4,\n    \"reviewText\": \"Updated review text\",\n    \"date\": \"2024-01-15\",\n    \"profilePictureUrl\": \"\"\n  },\n  \"name\": \"Updated Draft Name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "YOUR_DRAFT_ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Draft",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/drafts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drafts", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "YOUR_DRAFT_ID"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Screenshots",
+      "item": [
+        {
+          "name": "Get All Screenshots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/screenshots?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "screenshots"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Screenshot (JSON + Base64)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"google\",\n  \"reviewData\": {\n    \"platform\": \"google\",\n    \"reviewerName\": \"John Doe\",\n    \"rating\": 5,\n    \"reviewText\": \"Great service!\",\n    \"date\": \"2024-01-15\",\n    \"profilePictureUrl\": \"\"\n  },\n  \"name\": \"My Screenshot\",\n  \"imageBase64\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/screenshots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "screenshots"]
+            },
+            "description": "Save screenshot with base64 encoded image. Replace imageBase64 with actual base64 string."
+          }
+        },
+        {
+          "name": "Save Screenshot (FormData)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "platform",
+                  "value": "google",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewData",
+                  "value": "{\"platform\":\"google\",\"reviewerName\":\"John Doe\",\"rating\":5,\"reviewText\":\"Great!\",\"date\":\"2024-01-15\",\"profilePictureUrl\":\"\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "My Screenshot",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/screenshots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "screenshots"]
+            }
+          }
+        },
+        {
+          "name": "Get Screenshot by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/screenshots/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "screenshots", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "YOUR_SCREENSHOT_ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Screenshot",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/screenshots/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "screenshots", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "YOUR_SCREENSHOT_ID"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get User Limits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clerkJWT}}",
+                "type": "text",
+                "description": "Clerk JWT token from getToken() or Clerk Dashboard"
+              },
+              {
+                "key": "Cookie",
+                "value": "__session={{clerkSession}}",
+                "type": "text",
+                "description": "Alternative: Cookie-based auth (if JWT doesn't work)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/limits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "limits"]
+            },
+            "description": "Get current user's subscription tier and usage limits"
+          }
+        }
+      ]
+    }
+  ]
+}

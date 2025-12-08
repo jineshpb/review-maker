@@ -13,6 +13,7 @@
  * 3. Done - no other files need changes
  */
 
+import React from "react";
 import { IoMdStar } from "react-icons/io";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -20,11 +21,15 @@ import type {
   ReviewData,
   GoogleReviewData,
   AmazonReviewData,
+  TrustpilotReviewData,
+  TripAdvisorReviewData,
 } from "@/types/review";
 
 // Import platform-specific renderers
 import { renderGoogleReview } from "./platforms/google";
 import { renderAmazonReview } from "./platforms/amazon";
+import { renderTrustpilotReview } from "./platforms/trustpilot";
+import { renderTripAdvisorReview } from "./platforms/tripadvisor";
 import { Star } from "lucide-react";
 // Add more platform imports here:
 // import { renderYelpReview } from "./platforms/yelp";
@@ -33,23 +38,30 @@ import { Star } from "lucide-react";
 export const renderStars = (
   rating: number,
   options?: {
+    icon?: React.ReactElement; // Custom icon component (defaults to IoMdStar)
     size?: string; // e.g., "h-4 w-4" or "h-5 w-5"
     filledColor?: string; // e.g., "fill-yellow-400 text-yellow-400" or "fill-orange-400 text-orange-400"
     emptyColor?: string; // e.g., "text-gray-300"
   }
 ) => {
   const {
+    icon,
     size = "h-5 w-5",
     filledColor = "fill-yellow-400 text-yellow-400",
     emptyColor = "text-gray-300",
   } = options || {};
 
-  return [1, 2, 3, 4, 5].map((star) => (
-    <IoMdStar
-      key={star}
-      className={cn(size, star <= rating ? filledColor : emptyColor)}
-    />
-  ));
+  const StarIcon = icon || <IoMdStar />;
+
+  return [1, 2, 3, 4, 5].map((star) => {
+    const isFilled = star <= rating;
+    const starClasses = cn(size, isFilled ? filledColor : emptyColor);
+
+    return React.cloneElement(StarIcon as React.ReactElement<any>, {
+      key: star,
+      className: starClasses,
+    });
+  });
 };
 
 export const formatDate = (dateString: string) => {
@@ -82,14 +94,20 @@ export const renderReview = (platform: string, reviewData: ReviewData) => {
     case "amazon":
       return renderAmazonReview(reviewData as AmazonReviewData);
 
+    case "trustpilot":
+      return renderTrustpilotReview(reviewData as TrustpilotReviewData);
+
+    case "tripadvisor":
+      return renderTripAdvisorReview(reviewData as TripAdvisorReviewData);
+
     // Add more platforms here:
     // case "yelp":
     //   return renderYelpReview(reviewData as YelpReviewData);
 
     default:
       return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full">
-          <div className="text-gray-500">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full ">
+          <div className="text-gray-500 ">
             Template for {platform} coming soon
           </div>
         </div>

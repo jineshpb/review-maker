@@ -108,6 +108,111 @@ export interface Database {
           updated_at?: string;
         };
       };
+      drafts: {
+        Row: {
+          id: string;
+          user_id: string;
+          platform: string;
+          review_data: Json;
+          name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          platform: string;
+          review_data: Json;
+          name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          platform?: string;
+          review_data?: Json;
+          name?: string | null;
+          updated_at?: string;
+        };
+      };
+      saved_screenshots: {
+        Row: {
+          id: string;
+          user_id: string;
+          draft_id: string | null;
+          platform: string;
+          review_data: Json;
+          screenshot_url: string;
+          thumbnail_url: string | null;
+          name: string | null;
+          file_size: number | null;
+          width: number | null;
+          height: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          draft_id?: string | null;
+          platform: string;
+          review_data: Json;
+          screenshot_url: string;
+          thumbnail_url?: string | null;
+          name?: string | null;
+          file_size?: number | null;
+          width?: number | null;
+          height?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          draft_id?: string | null;
+          platform?: string;
+          review_data?: Json;
+          screenshot_url?: string;
+          thumbnail_url?: string | null;
+          name?: string | null;
+          file_size?: number | null;
+          width?: number | null;
+          height?: number | null;
+          updated_at?: string;
+        };
+      };
+      user_subscriptions: {
+        Row: {
+          user_id: string;
+          tier: "free" | "premium" | "enterprise";
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          status: "active" | "cancelled" | "expired";
+          current_period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tier?: "free" | "premium" | "enterprise";
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: "active" | "cancelled" | "expired";
+          current_period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          tier?: "free" | "premium" | "enterprise";
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: "active" | "cancelled" | "expired";
+          current_period_end?: string | null;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -157,4 +262,3 @@ export interface TemplateData {
   };
   platformSpecific?: Json;
 }
-

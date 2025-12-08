@@ -2,7 +2,7 @@
 
 import { Download } from "lucide-react";
 import { Button } from "../ui/button";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import type { ReviewData } from "@/types/review";
 import { renderReview } from "./ReviewRenderer";
 
@@ -18,56 +18,48 @@ interface ReviewPreviewProps {
  */
 export const ReviewPreview = ({ platform, reviewData }: ReviewPreviewProps) => {
   const handleDownload = async () => {
-    try {
-      toast({
-        title: "Generating screenshot...",
-        description: "Please wait",
-      });
-
-      const response = await fetch("/api/screenshot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reviewData: {
-            ...reviewData,
-            platform: platform,
+    toast.promise(
+      async () => {
+        const response = await fetch("/api/screenshot", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-          platform: platform,
-        }),
-      });
+          body: JSON.stringify({
+            reviewData: {
+              ...reviewData,
+              platform: platform,
+            },
+            platform: platform,
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to generate screenshot");
-      }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to generate screenshot");
+        }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `review-${platform || "custom"}-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `review-${platform || "custom"}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
 
-      toast({
-        title: "Success",
-        description: "Screenshot downloaded successfully!",
-      });
-    } catch (error) {
-      console.error("Download error:", error);
-      toast({
-        title: "Error",
-        description:
+        return { success: true };
+      },
+      {
+        loading: "Generating screenshot...",
+        success: "Screenshot downloaded successfully!",
+        error: (error) =>
           error instanceof Error
             ? error.message
             : "Failed to generate screenshot",
-        variant: "destructive",
-      });
-    }
+      }
+    );
   };
 
   return (

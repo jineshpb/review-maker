@@ -1,11 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { ReviewEditor } from "@/components/editor/ReviewEditor";
 
+import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
+
 export default async function Home() {
   const { userId } = await auth();
 
   return (
-    <div className="min-h-screen mx-auto max-w-[1400px] mt-32">
+    <div className="min-h-screen mx-auto max-w-[1600px] mt-32 px-24">
       <div className="mb-8 text-left">
         <h1 className="text-4xl font-bold tracking-tight mb-2">
           Review Screenshot Design
