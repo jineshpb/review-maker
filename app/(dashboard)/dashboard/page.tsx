@@ -1,29 +1,28 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ReviewEditor } from "@/components/editor/ReviewEditor";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { UserSync } from "@/components/UserSync";
+import { getUserSubscription } from "@/lib/supabase/subscriptions";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
+
+  const subscriptionData = await getUserSubscription();
+  console.log("@@subscriptionData", subscriptionData);
 
   if (!userId) {
     redirect("/sign-in");
   }
 
   return (
-    <div className="min-h-screen  from-background via-background to-muted/20 mt-32">
-      <div className="container mx-auto px-4 py-8 ">
-        <header className="mb-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">
-            Review Screenshot Designer
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Create authentic review screenshots for Google, Amazon, Yelp, and
-            more
-          </p>
-        </header>
+    <div className="min-h-[calc(100vh-4rem)] from-background via-background to-muted/20">
+      {/* Sync user to Supabase on page load (creates user + subscription if needed) */}
+      <UserSync />
 
-        <ReviewEditor isAuthenticated={true} />
-      </div>
+      <DashboardLayout
+        isAuthenticated={true}
+        subscriptionData={subscriptionData.data}
+      />
     </div>
   );
 }

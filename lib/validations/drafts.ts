@@ -8,43 +8,44 @@ import type { ReviewData } from "@/types/review";
  */
 
 // Base review data schema (common fields)
+// More lenient for drafts - allow empty/incomplete data
 const baseReviewDataSchema = z.object({
-  reviewerName: z.string().min(1, "Reviewer name is required"),
-  rating: z.number().int().min(1).max(5),
-  reviewText: z.string(),
-  date: z.string(), // ISO date string
-  profilePictureUrl: z.string(), // Can be empty string or URL
+  reviewerName: z.string().default(""), // Allow empty for drafts
+  rating: z.number().int().min(1).max(5).default(5),
+  reviewText: z.string().default(""),
+  date: z.string().default(() => new Date().toISOString().split("T")[0]), // Default to today
+  profilePictureUrl: z.string().default(""),
 });
 
-// Platform-specific schemas
+// Platform-specific schemas (lenient for drafts)
 const googleReviewDataSchema = baseReviewDataSchema.extend({
   platform: z.literal("google"),
-  localGuideLevel: z.number().int().min(0).max(10).optional(),
-  numberOfReviews: z.number().int().min(0).optional(),
-  numberOfPhotos: z.number().int().min(0).optional(),
-  isNew: z.boolean().optional(),
+  localGuideLevel: z.number().int().min(0).max(10).optional().default(0),
+  numberOfReviews: z.number().int().min(0).optional().default(0),
+  numberOfPhotos: z.number().int().min(0).optional().default(0),
+  isNew: z.boolean().optional().default(false),
 });
 
 const amazonReviewDataSchema = baseReviewDataSchema.extend({
   platform: z.literal("amazon"),
-  reviewTitle: z.string().min(1, "Review title is required"),
-  verified: z.boolean(),
-  helpfulVotes: z.number().int().min(0).optional(),
+  reviewTitle: z.string().default(""), // Allow empty for drafts
+  verified: z.boolean().default(false),
+  helpfulVotes: z.number().int().min(0).optional().default(0),
   location: z.string().optional(),
   productDetails: z.string().optional(),
 });
 
 const trustpilotReviewDataSchema = baseReviewDataSchema.extend({
   platform: z.literal("trustpilot"),
-  reviewTitle: z.string().min(1, "Review title is required"),
-  verified: z.boolean(),
+  reviewTitle: z.string().default(""), // Allow empty for drafts
+  verified: z.boolean().default(false),
 });
 
 const tripadvisorReviewDataSchema = baseReviewDataSchema.extend({
   platform: z.literal("tripadvisor"),
-  reviewTitle: z.string().min(1, "Review title is required"),
-  helpfulVotes: z.number().int().min(0).optional(),
-  contributionLevel: z.string().optional(),
+  reviewTitle: z.string().default(""), // Allow empty for drafts
+  helpfulVotes: z.number().int().min(0).optional().default(0),
+  contributionLevel: z.string().optional().default(""),
 });
 
 // Union type for all platforms
@@ -67,6 +68,7 @@ export const reviewDataSchema = z.discriminatedUnion("platform", [
 ]) as z.ZodType<ReviewData>;
 
 // Draft creation schema
+// More lenient - allow partial/incomplete data for drafts (work-in-progress)
 export const createDraftSchema = z.object({
   platform: z.enum([
     "google",
@@ -80,8 +82,8 @@ export const createDraftSchema = z.object({
     "appstore",
     "playstore",
   ]),
-  reviewData: reviewDataSchema,
-  name: z.string().optional(),
+  reviewData: z.any(), // Accept any structure for drafts - they're work-in-progress
+  name: z.string().optional().nullable(),
 });
 
 // Draft update schema

@@ -8,7 +8,7 @@ export default async function Home() {
   const { userId } = await auth();
 
   return (
-    <div className="min-h-screen mx-auto max-w-[1600px] mt-32 px-24">
+    <div className=" mx-auto max-w-[1600px] mt-32 px-24 h-full">
       <div className="mb-8 text-left">
         <h1 className="text-4xl font-bold tracking-tight mb-2">
           Review Screenshot Design

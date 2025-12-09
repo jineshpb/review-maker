@@ -59,9 +59,12 @@ export async function POST(request: NextRequest) {
     // Validate request body with Zod
     const validationResult = createDraftSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error("Validation failed:", validationResult.error.issues);
+      console.error("Received body:", JSON.stringify(body, null, 2));
       return NextResponse.json(
         {
           error: "Validation failed",
+          message: "Invalid draft data",
           issues: validationResult.error.issues,
         },
         { status: 400 }
