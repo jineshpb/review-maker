@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserSubscription, getUserLimits } from "@/lib/supabase/subscriptions";
+import {
+  getUserSubscription,
+  getUserLimits,
+} from "@/lib/supabase/subscriptions";
 
 /**
  * GET /api/subscription/status
  * Get current user's subscription status, tier, and usage limits
- * 
+ *
  * Returns:
  * {
- *   subscription: { tier, status, stripe_customer_id, ... },
+ *   subscription: { tier, status, razorpay_customer_id, razorpay_subscription_id, ... },
  *   limits: {
  *     tier: "free" | "premium" | "enterprise",
  *     limits: {
@@ -21,7 +24,9 @@ import { getUserSubscription, getUserLimits } from "@/lib/supabase/subscriptions
 export async function GET(request: NextRequest) {
   try {
     // Get subscription details
-    const { data: subscription, error: subError } = await getUserSubscription(request);
+    const { data: subscription, error: subError } = await getUserSubscription(
+      request
+    );
 
     if (subError && subError.code !== "PGRST116") {
       console.error("Error fetching subscription:", subError);
@@ -60,4 +65,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

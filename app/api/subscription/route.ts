@@ -11,8 +11,8 @@ import { getUserSubscription } from "@/lib/supabase/subscriptions";
  *     user_id: string,
  *     tier: "free" | "premium" | "enterprise",
  *     status: "active" | "cancelled" | "expired",
- *     stripe_customer_id: string | null,
- *     stripe_subscription_id: string | null,
+ *     razorpay_customer_id: string | null,
+ *     razorpay_subscription_id: string | null,
  *     current_period_end: string | null,
  *     created_at: string,
  *     updated_at: string

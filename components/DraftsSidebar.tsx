@@ -266,7 +266,14 @@ export const DraftsSidebar = ({
           <p>{tier.charAt(0).toUpperCase() + tier.slice(1)}</p>
           <p>Plan</p>
         </div>
-        <Button variant="outline" size="sm" className="text-sm cursor-pointer">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-sm cursor-pointer"
+          onClick={() => {
+            window.location.href = "/subscription";
+          }}
+        >
           Upgrade
         </Button>
       </div>

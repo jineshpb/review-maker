@@ -1,0 +1,32 @@
+# Traefik Dynamic Configuration for screen.jdawg.xyz
+# Place this file where Traefik can read it (usually in Traefik's config directory)
+
+http:
+  routers:
+    # Main Next.js app router
+    nextjs:
+      rule: "Host(`screen.jdawg.xyz`)" # Remove https:// - just domain name
+      entryPoints:
+        - https # Standard Traefik HTTPS entrypoint name
+      service: nextjs-service
+      tls:
+        certResolver: letsencrypt
+
+    # Webhook router (optional - can use same router as main)
+    # Actually, you don't need a separate router - same service handles all paths
+    # But keeping it here if you want separate config later
+    webhook:
+      rule: "Host(`screen.jdawg.xyz`) && PathPrefix(`/api/webhooks/razorpay`)"
+      entryPoints:
+        - https
+      service: nextjs-service
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    nextjs-service:
+      loadBalancer:
+        servers:
+          # Traefik at 10.0.0.9 needs to reach your PC at 192.168.1.156:3000
+          # This should work if both are on same network (via OpenSense router)
+          - url: "http://192.168.1.156:3000"
