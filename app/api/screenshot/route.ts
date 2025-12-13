@@ -19,8 +19,14 @@ export async function POST(request: NextRequest) {
       platform
     )}&data=${encodeURIComponent(JSON.stringify(reviewData))}`;
 
+    // Screenshot backend URL (configurable for production)
+    // Default: localhost:3001 for local dev
+    // Production: Set SCREENSHOT_BACKEND_URL in Vercel env vars
+    const backendUrl =
+      process.env.SCREENSHOT_BACKEND_URL || "http://localhost:3001";
+
     // Call the Playwright screenshot server
-    const screenshotResponse = await fetch("http://localhost:3001/screenshot", {
+    const screenshotResponse = await fetch(`${backendUrl}/screenshot`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
