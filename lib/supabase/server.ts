@@ -98,13 +98,22 @@ export function createServerClient() {
 export async function getCurrentUserId(request?: NextRequest): Promise<string> {
   let userId: string | null = null;
 
-  if (request) {
-    // Try to get from request (supports both cookies and JWT tokens)
-    userId = await getUserIdFromRequest(request);
-  } else {
-    // Fallback to cookie-based auth
-    const authResult = await auth();
-    userId = authResult.userId;
+  try {
+    if (request) {
+      // Try to get from request (supports both cookies and JWT tokens)
+      userId = await getUserIdFromRequest(request);
+    } else {
+      // Fallback to cookie-based auth
+      const authResult = await auth();
+      userId = authResult.userId;
+    }
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+    // If auth() fails, it might be a middleware issue
+    // Try the request-based approach as fallback
+    if (request) {
+      userId = await getUserIdFromRequest(request);
+    }
   }
 
   if (!userId) {

@@ -11,14 +11,16 @@ export async function getUserIdFromRequest(
   request: NextRequest
 ): Promise<string | null> {
   // Try cookie-based auth first (default Clerk behavior)
-  // Pass the request to auth() so it can read cookies properly
+  // In production, auth() reads from cookies set by middleware
   try {
+    // auth() automatically reads from request cookies in Next.js
     const { userId } = await auth();
     if (userId) {
       return userId;
     }
   } catch (error) {
     // Cookie auth failed, try JWT token
+    console.error("Cookie auth failed, trying JWT token:", error);
   }
 
   // Fallback: Check Authorization header for JWT token
