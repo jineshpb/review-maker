@@ -77,16 +77,43 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger Inngest workflow
-    const eventId = await inngest.send({
-      name: "review/ai.generate",
-      data: {
-        userId,
-        userPrompt,
-        platforms: platforms as ReviewPlatform[],
-        draftId: draftId || undefined,
-        tone: tone || undefined, // Optional tone values
-      },
-    });
+    let sendResult;
+    try {
+      sendResult = await inngest.send({
+        name: "review/ai.generate",
+        data: {
+          userId,
+          userPrompt,
+          platforms: platforms as ReviewPlatform[],
+          draftId: draftId || undefined,
+          tone: tone || undefined, // Optional tone values
+        },
+      });
+    } catch (error) {
+      console.error("Failed to send Inngest event:", error);
+
+      // Check if it's an event key error
+      if (
+        error instanceof Error &&
+        (error.message.includes("event key") ||
+          error.message.includes("INNGEST_EVENT_KEY"))
+      ) {
+        return NextResponse.json(
+          {
+            error: "Inngest configuration error",
+            message:
+              "INNGEST_EVENT_KEY environment variable is missing or invalid. Please check your Vercel environment variables.",
+          },
+          { status: 500 }
+        );
+      }
+
+      throw error; // Re-throw other errors
+    }
+
+    const eventId = Array.isArray(sendResult.ids)
+      ? sendResult.ids[0]
+      : sendResult.ids;
 
     // Decrement AI fills available count (only after successful event send)
     const decrementResult = await decrementAIFillsAvailable(request);
