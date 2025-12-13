@@ -3,22 +3,29 @@ import { ReviewEditor } from "@/components/editor/ReviewEditor";
 
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { UserSync } from "@/components/UserSync";
+import { getUserSubscription } from "@/lib/supabase/subscriptions";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
   const { userId } = await auth();
 
-  return (
-    <div className=" mx-auto max-w-[1600px] mt-32 px-24 h-full">
-      <div className="mb-8 text-left">
-        <h1 className="text-4xl font-bold tracking-tight mb-2">
-          Review Screenshot Design
-        </h1>
-        <p className="text-muted-foreground text-lg">
-          Create authentic review screenshots for Google, Amazon, Yelp, and more
-        </p>
-      </div>
+  const subscriptionData = await getUserSubscription();
+  // console.log("@@subscriptionData", subscriptionData);
 
-      <ReviewEditor isAuthenticated={!!userId} />
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] bg-white ">
+      <UserSync />
+
+      <DashboardLayout
+        isAuthenticated={true}
+        subscriptionData={subscriptionData.data}
+      />
     </div>
   );
 }

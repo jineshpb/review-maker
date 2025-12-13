@@ -9,6 +9,10 @@ interface GenerateReviewsEvent {
     userPrompt: string; // Business info/prompt from user
     platforms: ReviewPlatform[]; // Platforms to generate reviews for
     draftId?: string; // Optional: if updating existing draft
+    tone?: {
+      concise: number; // -1 to 1, where -1 is most concise, 1 is most expanded
+      positive: number; // -1 to 1, where -1 is most negative, 1 is most positive
+    };
   };
 }
 
@@ -27,77 +31,73 @@ export const generatePlatformReviews = inngest.createFunction(
   },
   { event: "review/ai.generate" },
   async ({ event, step }) => {
-    const { userId, userPrompt, platforms, draftId } = event.data;
+    const { userId, userPrompt, platforms, draftId, tone } = event.data;
 
-    // Step 1: Generate reviews for each platform
-    const generatedReviews = await step.run(
-      "generate-reviews-for-platforms",
-      async () => {
-        const reviews: Record<string, any> = {};
+    // Step 1: Generate ONE review (reuse across platforms for cost efficiency)
+    // Use the first platform for field structure, but content will be reused
+    const primaryPlatform = platforms[0];
 
-        for (const platform of platforms) {
-          // Generate platform-specific review using AI
-          const review = await generateReviewForPlatform(platform, userPrompt);
-          reviews[platform] = review;
-        }
+    const generatedReview = await step.run("generate-review", async () => {
+      // Generate ONE review using the primary platform for field structure
+      // The same content will be reused across all platforms (realistic behavior)
+      const review = await generateReviewForPlatform(
+        primaryPlatform,
+        userPrompt,
+        tone
+      );
+      return review;
+    });
 
-        return reviews;
-      }
-    );
-
-    // Step 2: Save reviews to database
-    const savedDrafts = await step.run("save-reviews-to-database", async () => {
+    // Step 2: Save review to database
+    // If draftId provided, update existing draft (single draft, not per platform)
+    // If no draftId, create one draft for the primary platform
+    const savedDraft = await step.run("save-review-to-database", async () => {
       const supabase = createServerClient();
-      const results: Array<{ platform: string; draftId: string }> = [];
 
-      for (const [platform, reviewData] of Object.entries(generatedReviews)) {
-        try {
-          // If draftId provided, update existing draft
-          if (draftId) {
-            const { data, error } = await (supabase.from("drafts") as any)
-              .update({
-                review_data: reviewData,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", draftId)
-              .eq("user_id", userId)
-              .select()
-              .single();
+      try {
+        // If draftId provided, update existing draft
+        if (draftId) {
+          const { data, error } = await (supabase.from("drafts") as any)
+            .update({
+              review_data: generatedReview,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", draftId)
+            .eq("user_id", userId)
+            .select()
+            .single();
 
-            if (error) throw error;
-            results.push({ platform, draftId: data.id });
-          } else {
-            // Create new draft for this platform
-            const { data, error } = await (supabase.from("drafts") as any)
-              .insert({
-                user_id: userId,
-                platform,
-                review_data: reviewData,
-                name: `${
-                  platform.charAt(0).toUpperCase() + platform.slice(1)
-                } Review - ${new Date().toLocaleDateString()}`,
-              })
-              .select()
-              .single();
+          if (error) throw error;
+          return { platform: primaryPlatform, draftId: data.id };
+        } else {
+          // Create new draft for the primary platform
+          const { data, error } = await (supabase.from("drafts") as any)
+            .insert({
+              user_id: userId,
+              platform: primaryPlatform,
+              review_data: generatedReview,
+              name: `${
+                primaryPlatform.charAt(0).toUpperCase() +
+                primaryPlatform.slice(1)
+              } Review - ${new Date().toLocaleDateString()}`,
+            })
+            .select()
+            .single();
 
-            if (error) throw error;
-            results.push({ platform, draftId: data.id });
-          }
-        } catch (error) {
-          console.error(`Error saving draft for ${platform}:`, error);
-          // Continue with other platforms even if one fails
+          if (error) throw error;
+          return { platform: primaryPlatform, draftId: data.id };
         }
+      } catch (error) {
+        console.error(`Error saving draft:`, error);
+        throw error;
       }
-
-      return results;
     });
 
     return {
       success: true,
-      platforms: platforms,
-      reviewsGenerated: Object.keys(generatedReviews).length,
-      draftsSaved: savedDrafts.length,
-      drafts: savedDrafts,
+      platform: primaryPlatform,
+      reviewGenerated: true,
+      draftSaved: savedDraft,
     };
   }
 );
@@ -107,7 +107,11 @@ export const generatePlatformReviews = inngest.createFunction(
  */
 async function generateReviewForPlatform(
   platform: ReviewPlatform,
-  userPrompt: string
+  userPrompt: string,
+  tone?: {
+    concise: number;
+    positive: number;
+  }
 ): Promise<any> {
   // TODO: Replace with actual AI API call (OpenAI, Anthropic, etc.)
   const apiKey = process.env.OPENAI_API_KEY;
@@ -116,8 +120,8 @@ async function generateReviewForPlatform(
     throw new Error("OPENAI_API_KEY not configured");
   }
 
-  // Build platform-specific prompt
-  const platformPrompt = buildPlatformPrompt(platform, userPrompt);
+  // Build platform-specific prompt with tone
+  const platformPrompt = buildPlatformPrompt(platform, userPrompt, tone);
 
   // Call OpenAI API
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -131,7 +135,7 @@ async function generateReviewForPlatform(
       messages: [
         {
           role: "system",
-          content: `You are an expert at writing authentic ${platform} reviews. Generate realistic review content that matches the platform's style and includes all required fields.`,
+          content: `You are an expert at writing authentic reviews. Generate realistic review content that can be used across multiple platforms. Include all required fields for ${platform} (for field structure), but write the content in a natural, authentic style that works well on any review platform.`,
         },
         {
           role: "user",
@@ -160,11 +164,53 @@ async function generateReviewForPlatform(
  */
 function buildPlatformPrompt(
   platform: ReviewPlatform,
-  userPrompt: string
+  userPrompt: string,
+  tone?: {
+    concise: number;
+    positive: number;
+  }
 ): string {
   const platformFields = getPlatformFields(platform);
 
-  return `Generate a realistic ${platform} review based on this business information:
+  // Build tone instructions
+  let toneInstructions = "";
+  if (tone) {
+    const toneParts: string[] = [];
+
+    // Concise vs Expanded
+    if (tone.concise < -0.1) {
+      const concisePercent = Math.round(Math.abs(tone.concise) * 100);
+      toneParts.push(
+        `Write in a concise style (${concisePercent}% concise - brief, to the point, minimal words)`
+      );
+    } else if (tone.concise > 0.1) {
+      const expandedPercent = Math.round(Math.abs(tone.concise) * 100);
+      toneParts.push(
+        `Write in an expanded style (${expandedPercent}% expanded - detailed, thorough, comprehensive)`
+      );
+    }
+
+    // Positive vs Negative
+    if (tone.positive < -0.1) {
+      const negativePercent = Math.round(Math.abs(tone.positive) * 100);
+      toneParts.push(
+        `Write a negative review (${negativePercent}% negative - critical, pointing out issues and problems)`
+      );
+    } else if (tone.positive > 0.1) {
+      const positivePercent = Math.round(Math.abs(tone.positive) * 100);
+      toneParts.push(
+        `Write a positive review (${positivePercent}% positive - praising, highlighting strengths and benefits)`
+      );
+    } else {
+      toneParts.push("Write a neutral review (balanced, objective)");
+    }
+
+    if (toneParts.length > 0) {
+      toneInstructions = `\n\nTone Requirements:\n${toneParts.join("\n")}`;
+    }
+  }
+
+  return `Generate a realistic review based on this business information. The review will be used across multiple platforms, so write it in a natural, authentic style that works well anywhere.
 
 ${userPrompt}
 
@@ -172,7 +218,11 @@ Requirements:
 - Rating: ${platformFields.ratingRange || "1-5 stars"}
 - Review text: ${platformFields.reviewTextLength || "50-300 words"}
 - Style: ${platformFields.style || "authentic and natural"}
-- Platform-specific fields: ${platformFields.requiredFields.join(", ")}
+- Include all ${platform} fields (for structure): ${platformFields.requiredFields.join(
+    ", "
+  )}${toneInstructions}
+
+Note: Write the review content in a universal style that works across platforms. The platform parameter is only used to determine which fields to include (like Local Guide level, verified badge, etc.), not to change the writing style.
 
 Return JSON with all fields filled:
 ${JSON.stringify(platformFields.exampleStructure, null, 2)}`;

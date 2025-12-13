@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Download, Save, Loader2, Brain } from "lucide-react";
 import html2canvas from "html2canvas";
 import { toast } from "@/hooks/use-toast";
-import ReviewAi from "./platforms/ReviewAi";
+
 import { Label } from "@radix-ui/react-label";
 import { GoogleReviewData } from "@/types/review";
 import { Switch } from "@/components/ui/switch";
+import ReviewAi from "./ReviewAi";
 
 interface Draft {
   id: string;
@@ -28,12 +29,14 @@ interface ReviewEditorProps {
   isAuthenticated: boolean;
   selectedDraft?: Draft | null;
   onDraftChange?: () => void;
+  onDraftRefetch?: (draftId: string) => Promise<void>;
 }
 
 export const ReviewEditor = ({
   isAuthenticated,
   selectedDraft,
   onDraftChange,
+  onDraftRefetch,
 }: ReviewEditorProps) => {
   const { userId } = useAuth();
   const router = useRouter();
@@ -162,8 +165,18 @@ export const ReviewEditor = ({
   }, [reviewData, isAuthenticated, selectedPlatform, autoSaveDraft]);
 
   // Load draft when selected
+  // Note: This component remounts when the key (updated_at) changes,
+  // so this effect runs fresh with new data
   useEffect(() => {
     if (selectedDraft) {
+      console.log("🔄 ReviewEditor: Loading draft", {
+        id: selectedDraft.id,
+        updated_at: selectedDraft.updated_at,
+        reviewTextPreview: selectedDraft.review_data?.reviewText?.substring(
+          0,
+          50
+        ),
+      });
       setCurrentDraftId(selectedDraft.id);
       setSelectedPlatform(selectedDraft.platform);
       setReviewData({
@@ -378,6 +391,7 @@ export const ReviewEditor = ({
                       }
                       onClose={() => setAiMode(false)}
                       onReviewGenerated={onDraftChange}
+                      onDraftRefetch={onDraftRefetch}
                       platform={selectedPlatform}
                       draftId={currentDraftId || undefined}
                     />

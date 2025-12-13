@@ -96,6 +96,43 @@ export const DashboardLayout = ({
     setRefreshKey((prev) => prev + 1);
   };
 
+  const handleDraftRefetch = async (draftId: string) => {
+    try {
+      console.log("Refetching draft:", draftId);
+      // Use cache busting to ensure we get fresh data
+      const response = await fetch(`/api/drafts/${draftId}?t=${Date.now()}`);
+      if (response.ok) {
+        const result = await response.json();
+        const updatedDraft = result.data;
+        console.log("✅ Refetched draft data:", {
+          id: updatedDraft?.id,
+          updated_at: updatedDraft?.updated_at,
+          reviewTextPreview: updatedDraft?.review_data?.reviewText?.substring(
+            0,
+            50
+          ),
+        });
+
+        if (updatedDraft) {
+          // Update the draft - the key prop on ReviewEditor will handle remounting
+          // when updated_at changes, ensuring the UI updates
+          setSelectedDraft(updatedDraft);
+
+          // Also refresh sidebar to show updated draft name/timestamp
+          setRefreshKey((prev) => prev + 1);
+        }
+      } else {
+        console.error(
+          "Failed to refetch draft:",
+          response.status,
+          await response.text()
+        );
+      }
+    } catch (error) {
+      console.error("Error refetching draft:", error);
+    }
+  };
+
   // Auto-select first draft when drafts are loaded and none is selected
   // Only on first login when there are no drafts - don't create a new draft automatically
   useEffect(() => {
@@ -138,9 +175,11 @@ export const DashboardLayout = ({
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 py-8">
           <ReviewEditor
+            key={selectedDraft?.updated_at || selectedDraft?.id || "no-draft"}
             isAuthenticated={isAuthenticated}
             selectedDraft={selectedDraft}
             onDraftChange={handleDraftChange}
+            onDraftRefetch={handleDraftRefetch}
           />
         </div>
       </div>

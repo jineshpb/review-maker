@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
           current_period_end: new Date(
             subscription.current_end * 1000
           ).toISOString(),
+          ai_fills_available: 999999, // Premium/Enterprise get effectively unlimited
         });
 
         console.log(`✅ Subscription activated for user ${clerkUserId}`);

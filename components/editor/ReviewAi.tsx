@@ -18,6 +18,7 @@ interface ReviewAiProps {
   onToneChange?: (values: ToneValues) => void;
   onClose?: () => void;
   onReviewGenerated?: () => void;
+  onDraftRefetch?: (draftId: string) => Promise<void>;
   platform?: string;
   draftId?: string;
 }
@@ -26,6 +27,7 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
   onToneChange,
   onClose,
   onReviewGenerated,
+  onDraftRefetch,
   platform,
   draftId,
 }) => {
@@ -132,7 +134,30 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
   const puckPosition = getPuckPosition();
   const [aiGenerating, setAiGenerating] = useState(false);
   const [userPrompt, setUserPrompt] = useState("");
+  const [aiFillsLimit, setAiFillsLimit] = useState<{
+    max: number | null;
+    used: number;
+    available?: number; // Available fills (for free tier)
+  } | null>(null);
   const { userId, isSignedIn } = useAuth();
+
+  // Fetch AI fills limit on mount
+  React.useEffect(() => {
+    if (isSignedIn) {
+      const fetchLimits = async () => {
+        try {
+          const response = await fetch("/api/subscription/status");
+          if (response.ok) {
+            const result = await response.json();
+            setAiFillsLimit(result.limits?.limits?.aiFills || null);
+          }
+        } catch (error) {
+          console.error("Error fetching AI fills limit:", error);
+        }
+      };
+      fetchLimits();
+    }
+  }, [isSignedIn]);
 
   const handleAIFill = async () => {
     if (!isSignedIn || !userId) {
@@ -163,26 +188,162 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
           userPrompt: userPrompt.trim(),
           platforms: [platform], // Generate for current platform
           draftId: draftId || undefined,
+          tone: {
+            concise: toneValues.concise,
+            positive: toneValues.positive,
+          },
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        // If limit reached, show upgrade message
+        if (response.status === 403 && data.error === "AI fill limit reached") {
+          toast.error(data.message || "AI fill limit reached");
+          // Refresh limits to update UI
+          const limitsResponse = await fetch("/api/subscription/status");
+          if (limitsResponse.ok) {
+            const limitsResult = await limitsResponse.json();
+            setAiFillsLimit(limitsResult.limits?.limits?.aiFills || null);
+          }
+          setAiGenerating(false);
+          return;
+        }
         throw new Error(data.message || "Failed to generate reviews");
+      }
+
+      // Update limits after successful generation
+      const limitsResponse = await fetch("/api/subscription/status");
+      if (limitsResponse.ok) {
+        const limitsResult = await limitsResponse.json();
+        setAiFillsLimit(limitsResult.limits?.limits?.aiFills || null);
       }
 
       toast.success("AI generation started! This may take a few moments...");
 
-      // Poll for completion (or use webhooks/SSE in future)
-      // For now, refresh drafts after a delay
-      setTimeout(() => {
-        if (onReviewGenerated) {
-          onReviewGenerated();
+      // Store the initial updated_at timestamp BEFORE generation starts
+      // This is our baseline to detect when Inngest finishes writing to DB
+      let initialUpdatedAt: string | null = null;
+      if (draftId) {
+        try {
+          const initialDraftResponse = await fetch(`/api/drafts/${draftId}`);
+          if (initialDraftResponse.ok) {
+            const initialDraftData = await initialDraftResponse.json();
+            initialUpdatedAt = initialDraftData.data?.updated_at || null;
+            console.log("📌 Initial draft timestamp:", initialUpdatedAt);
+          }
+        } catch (error) {
+          console.error("Error fetching initial draft:", error);
         }
-        setAiGenerating(false);
-        toast.success("Review generated! Check your drafts.");
-      }, 5000); // 5 second delay for demo
+      }
+
+      // Poll for completion - check if Inngest finished writing to DB
+      const pollForCompletion = async () => {
+        const maxAttempts = 30; // 30 attempts = 30 seconds max (AI can take time)
+        const pollInterval = 1000; // 1 second between polls
+        let attempts = 0;
+
+        const poll = async (): Promise<void> => {
+          if (!draftId) {
+            // If no draftId, just refresh sidebar after delay
+            setTimeout(() => {
+              if (onReviewGenerated) {
+                onReviewGenerated();
+              }
+              setAiGenerating(false);
+              toast.success("Review generated! Check your drafts.");
+            }, 5000);
+            return;
+          }
+
+          try {
+            // Fetch the draft to check if it's been updated by Inngest
+            const draftResponse = await fetch(
+              `/api/drafts/${draftId}?t=${Date.now()}`
+            ); // Cache bust
+            if (draftResponse.ok) {
+              const draftData = await draftResponse.json();
+              const draft = draftData.data;
+              const currentUpdatedAt = draft?.updated_at;
+
+              // Compare timestamps: if updated_at changed, Inngest finished writing!
+              const wasUpdated =
+                initialUpdatedAt !== null &&
+                currentUpdatedAt !== null &&
+                initialUpdatedAt !== undefined &&
+                currentUpdatedAt !== undefined &&
+                new Date(currentUpdatedAt).getTime() >
+                  new Date(initialUpdatedAt).getTime();
+
+              if (wasUpdated && currentUpdatedAt && initialUpdatedAt) {
+                // ✅ Inngest finished! Timestamp changed = DB was written
+                console.log("✅ Inngest finished writing to DB!", {
+                  initialTimestamp: initialUpdatedAt,
+                  currentTimestamp: currentUpdatedAt,
+                  timeDiff:
+                    new Date(currentUpdatedAt).getTime() -
+                    new Date(initialUpdatedAt).getTime(),
+                });
+
+                // Refetch the draft to update UI
+                if (onDraftRefetch) {
+                  await onDraftRefetch(draftId);
+                }
+                setAiGenerating(false);
+                toast.success("Review generated successfully!");
+                return;
+              } else {
+                // Still waiting for Inngest to finish...
+                console.log(
+                  `⏳ Polling attempt ${
+                    attempts + 1
+                  }/${maxAttempts}: Waiting for Inngest...`,
+                  {
+                    initialTimestamp: initialUpdatedAt,
+                    currentTimestamp: currentUpdatedAt,
+                    wasUpdated: false,
+                  }
+                );
+              }
+            } else {
+              console.error(
+                "Failed to fetch draft:",
+                draftResponse.status,
+                await draftResponse.text()
+              );
+            }
+
+            attempts++;
+            if (attempts < maxAttempts) {
+              // Continue polling
+              setTimeout(poll, pollInterval);
+            } else {
+              // Timeout - still try to refetch as a fallback
+              console.log("⏱️ Polling timeout, attempting final refetch...");
+              if (onDraftRefetch && draftId) {
+                await onDraftRefetch(draftId);
+              }
+              setAiGenerating(false);
+              toast.success("Review generation completed!");
+            }
+          } catch (error) {
+            console.error("Error polling for draft update:", error);
+            // On error, still try to refetch once as a fallback
+            if (onDraftRefetch && draftId) {
+              console.log("Error during polling, attempting refetch...");
+              await onDraftRefetch(draftId);
+            }
+            setAiGenerating(false);
+            toast.success("Review generation completed!");
+          }
+        };
+
+        // Start polling after a short delay (give Inngest time to start)
+        setTimeout(poll, 2000);
+      };
+
+      pollForCompletion();
     } catch (error) {
       console.error("Error generating AI review:", error);
       toast.error(
@@ -208,11 +369,21 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
                   className="w-full"
                 />
               </div>
-              {!isSignedIn && (
-                <div className="flex items-center gap-2 justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Sign in to use AI fill
+              {isSignedIn && aiFillsLimit && (
+                <div className="flex items-center gap-2 justify-between text-xs text-muted-foreground">
+                  <span>
+                    AI fills: {aiFillsLimit.used}/
+                    {aiFillsLimit.max === null ? "∞" : aiFillsLimit.max}
                   </span>
+                  {aiFillsLimit.max !== null &&
+                    aiFillsLimit.used >= aiFillsLimit.max && (
+                      <a
+                        href="/subscription"
+                        className="text-primary hover:underline"
+                      >
+                        Upgrade
+                      </a>
+                    )}
                 </div>
               )}
             </div>
@@ -350,7 +521,14 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
                   onClick={handleAIFill}
                   variant="outline"
                   size="sm"
-                  disabled={aiGenerating || !userPrompt.trim() || !isSignedIn}
+                  disabled={
+                    aiGenerating ||
+                    !userPrompt.trim() ||
+                    !isSignedIn ||
+                    (aiFillsLimit !== null &&
+                      aiFillsLimit.max !== null &&
+                      (aiFillsLimit.available ?? 0) <= 0)
+                  }
                   className="grow"
                 >
                   {aiGenerating ? (
@@ -358,8 +536,12 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Generating...
                     </>
+                  ) : aiFillsLimit &&
+                    aiFillsLimit.max !== null &&
+                    (aiFillsLimit.available ?? 0) <= 0 ? (
+                    <>Limit Reached</>
                   ) : (
-                    <>Generate a review</>
+                    <>Generate Review</>
                   )}
                 </Button>
               </div>

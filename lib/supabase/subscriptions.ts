@@ -1,5 +1,6 @@
 import { createAuthenticatedClient } from "./server";
 import { ensureUserExists } from "./users";
+import { getDraftCount } from "./drafts";
 import type { Database } from "@/types/database";
 
 type UserSubscription =
@@ -16,16 +17,19 @@ export const TIER_LIMITS = {
   free: {
     drafts: 2,
     screenshots: 10,
+    aiFills: 3, // 3 free AI fills for free tier
     storageBytes: 100 * 1024 * 1024, // 100MB
   },
   premium: {
     drafts: Infinity,
     screenshots: Infinity,
+    aiFills: Infinity, // Unlimited AI fills for premium
     storageBytes: 10 * 1024 * 1024 * 1024, // 10GB
   },
   enterprise: {
     drafts: Infinity,
     screenshots: Infinity,
+    aiFills: Infinity, // Unlimited AI fills for enterprise
     storageBytes: Infinity,
   },
 } as const;
@@ -59,6 +63,7 @@ export async function getUserSubscription(
         user_id: userId,
         tier: "free",
         status: "active",
+        ai_fills_available: 3, // Free tier gets 3 AI fills
       })
       .select()
       .single();
@@ -91,7 +96,7 @@ export async function canCreateDraft(
 
   if (limit === Infinity) return true;
 
-  const count = await getDraftCount(request);
+  const { count } = await getDraftCount();
 
   // Debug logging
   console.log(
@@ -124,30 +129,6 @@ export async function canCreateScreenshot(
 }
 
 /**
- * Get draft count (internal helper)
- */
-async function getDraftCount(request?: import("next/server").NextRequest) {
-  const { supabase, userId } = await createAuthenticatedClient(request);
-
-  // Debug: Log the query
-  console.log("[getDraftCount] userId:", userId);
-
-  // Type assertion needed until Supabase types are regenerated from actual database
-  const { count, error } = await (supabase.from("drafts") as any)
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  // Debug: Log the result
-  console.log("[getDraftCount] count:", count, "error:", error);
-
-  // If count is null or undefined, return 0
-  const finalCount = count ?? 0;
-  console.log("[getDraftCount] finalCount:", finalCount);
-
-  return finalCount;
-}
-
-/**
  * Get screenshot count (internal helper)
  */
 async function getScreenshotCount(request?: import("next/server").NextRequest) {
@@ -160,6 +141,73 @@ async function getScreenshotCount(request?: import("next/server").NextRequest) {
 }
 
 /**
+ * Get AI fills available count from user_subscriptions
+ */
+async function getAIFillsAvailable(
+  request?: import("next/server").NextRequest
+) {
+  const { supabase, userId } = await createAuthenticatedClient(request);
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select("ai_fills_available")
+    .eq("user_id", userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    console.error("Error fetching AI fills available:", error);
+    return 0;
+  }
+
+  return (data as any)?.ai_fills_available ?? 0;
+}
+
+/**
+ * Check if user can use AI fill
+ */
+export async function canUseAIFill(
+  request?: import("next/server").NextRequest
+): Promise<boolean> {
+  const available = await getAIFillsAvailable(request);
+
+  console.log("[canUseAIFill] available:", available, "canUse:", available > 0);
+
+  return available > 0;
+}
+
+/**
+ * Decrement AI fills available count
+ */
+export async function decrementAIFillsAvailable(
+  request?: import("next/server").NextRequest
+): Promise<{ success: boolean; error?: any }> {
+  const { supabase, userId } = await createAuthenticatedClient(request);
+
+  // Ensure user subscription exists
+  await ensureUserExists(request);
+
+  // Get current available count
+  const currentAvailable = await getAIFillsAvailable(request);
+
+  // Only decrement if > 0 (prevent going negative)
+  const newAvailable = Math.max(0, currentAvailable - 1);
+
+  // Decrement
+  const { error } = await (supabase.from("user_subscriptions") as any)
+    .update({
+      ai_fills_available: newAvailable,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error decrementing AI fills available:", error);
+    return { success: false, error };
+  }
+
+  return { success: true };
+}
+
+/**
  * Get user's usage and limits
  */
 export async function getUserLimits(
@@ -168,11 +216,17 @@ export async function getUserLimits(
   const tier = await getUserTier(request);
   const limits = TIER_LIMITS[tier];
 
-  const draftCount = await getDraftCount(request);
+  const { count: draftCount } = await getDraftCount();
   const screenshotCount = await getScreenshotCount(request);
+  const aiFillsAvailable = await getAIFillsAvailable(request);
 
   // TODO: Calculate storage used from Supabase Storage
   const storageUsed = 0;
+
+  // Calculate AI fills used from available (for display)
+  const aiFillsMax = limits.aiFills === Infinity ? null : limits.aiFills;
+  const aiFillsUsed =
+    aiFillsMax !== null ? Math.max(0, aiFillsMax - aiFillsAvailable) : 0;
 
   return {
     tier,
@@ -184,6 +238,11 @@ export async function getUserLimits(
       screenshots: {
         max: limits.screenshots === Infinity ? null : limits.screenshots,
         used: screenshotCount,
+      },
+      aiFills: {
+        max: aiFillsMax,
+        used: aiFillsUsed,
+        available: aiFillsAvailable, // Also return available for UI
       },
       storage: {
         max: limits.storageBytes === Infinity ? null : limits.storageBytes,

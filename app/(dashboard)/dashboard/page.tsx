@@ -8,7 +8,7 @@ export default async function DashboardPage() {
   const { userId } = await auth();
 
   const subscriptionData = await getUserSubscription();
-  console.log("@@subscriptionData", subscriptionData);
+  // console.log("@@subscriptionData", subscriptionData);
 
   if (!userId) {
     redirect("/sign-in");

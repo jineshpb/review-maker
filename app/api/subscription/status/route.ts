@@ -16,6 +16,7 @@ import {
  *     limits: {
  *       drafts: { max: number | null, used: number },
  *       screenshots: { max: number | null, used: number },
+ *       aiFills: { max: number | null, used: number },
  *       storage: { max: number | null, used: number }
  *     }
  *   }

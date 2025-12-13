@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { inngest } from "@/lib/inngest/client";
 import { createAuthenticatedClient } from "@/lib/supabase/server";
+import {
+  canUseAIFill,
+  decrementAIFillsAvailable,
+} from "@/lib/supabase/subscriptions";
 import type { ReviewPlatform } from "@/types/database";
 
 /**
  * POST /api/review/ai-generate
  * Trigger AI review generation workflow
- * 
+ *
  * Body: {
  *   userPrompt: string, // Business info/prompt
  *   platforms: ReviewPlatform[], // Platforms to generate for
@@ -18,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { supabase, userId } = await createAuthenticatedClient(request);
 
     const body = await request.json();
-    const { userPrompt, platforms, draftId } = body;
+    const { userPrompt, platforms, draftId, tone } = body;
 
     // Validate input
     if (!userPrompt || typeof userPrompt !== "string") {
@@ -59,6 +63,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user can use AI fill (subscription limit check)
+    const canUse = await canUseAIFill(request);
+    if (!canUse) {
+      return NextResponse.json(
+        {
+          error: "AI fill limit reached",
+          message:
+            "You've used all your free AI fills. Upgrade to premium for unlimited AI fills.",
+        },
+        { status: 403 }
+      );
+    }
+
     // Trigger Inngest workflow
     const eventId = await inngest.send({
       name: "review/ai.generate",
@@ -67,8 +84,19 @@ export async function POST(request: NextRequest) {
         userPrompt,
         platforms: platforms as ReviewPlatform[],
         draftId: draftId || undefined,
+        tone: tone || undefined, // Optional tone values
       },
     });
+
+    // Decrement AI fills available count (only after successful event send)
+    const decrementResult = await decrementAIFillsAvailable(request);
+    if (!decrementResult.success) {
+      console.error(
+        "Failed to decrement AI fills available:",
+        decrementResult.error
+      );
+      // Don't fail the request, just log the error
+    }
 
     return NextResponse.json({
       success: true,
@@ -87,4 +115,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
