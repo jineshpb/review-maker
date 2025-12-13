@@ -25,7 +25,7 @@ export const ReviewForm = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-4 w-full">
       <div className="space-y-2">
         <Label htmlFor="reviewerName">Reviewer Name</Label>
         <Input

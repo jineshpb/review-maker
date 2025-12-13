@@ -1,22 +1,35 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Loader2, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 import type { ReviewData } from "@/types/review";
 import { renderReview } from "./ReviewRenderer";
+import { useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 
 interface ReviewPreviewProps {
   platform: string;
   reviewData: ReviewData;
+  draftId?: string | null;
+  onReviewGenerated?: () => void;
 }
 
 /**
- * Client component for editor preview with download button
+ * Client component for editor preview with download button and AI fill
  *
  * Uses ReviewRenderer - single source of truth for all templates
  */
-export const ReviewPreview = ({ platform, reviewData }: ReviewPreviewProps) => {
+export const ReviewPreview = ({
+  platform,
+  reviewData,
+  draftId,
+  onReviewGenerated,
+}: ReviewPreviewProps) => {
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [userPrompt, setUserPrompt] = useState("");
+  const { userId, isSignedIn } = useAuth();
+
   const handleDownload = async () => {
     toast.promise(
       async () => {

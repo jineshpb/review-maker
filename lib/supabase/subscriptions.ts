@@ -14,7 +14,7 @@ export type SubscriptionTier = "free" | "premium" | "enterprise";
  */
 export const TIER_LIMITS = {
   free: {
-    drafts: 5,
+    drafts: 2,
     screenshots: 10,
     storageBytes: 100 * 1024 * 1024, // 100MB
   },

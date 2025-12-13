@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Edit2, Loader2, EllipsisVertical } from "lucide-react";
@@ -18,10 +18,11 @@ interface Draft {
 }
 
 interface DraftsSidebarProps {
-  onSelectDraft: (draft: Draft) => void;
+  onSelectDraft: (draft: Draft | null) => void;
   onNewDraft: () => void;
   selectedDraftId?: string | null;
   subscriptionData: UserSubscription;
+  refreshTrigger?: number;
 }
 
 type UserSubscription =
@@ -32,54 +33,91 @@ export const DraftsSidebar = ({
   onNewDraft,
   selectedDraftId,
   subscriptionData,
+  refreshTrigger,
 }: DraftsSidebarProps) => {
   const { isSignedIn } = useAuth();
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  console.log("@@subscriptionData client", subscriptionData);
+  const [limits, setLimits] = useState<{
+    drafts: { max: number | null; used: number };
+  } | null>(null);
 
   const { tier } = subscriptionData;
-  console.log("@@tier", tier);
 
-  const fetchDrafts = async () => {
-    if (!isSignedIn) {
-      setDrafts([]);
-      setLoading(false);
-      return;
-    }
+  const fetchDrafts = useCallback(
+    async (showLoading = true) => {
+      if (!isSignedIn) {
+        setDrafts([]);
+        setLoading(false);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      const response = await fetch("/api/drafts");
-      const result = await response.json();
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+        const response = await fetch("/api/drafts");
+        const result = await response.json();
 
-      if (response.ok) {
-        setDrafts(result.data || []);
-      } else {
-        console.error("Error fetching drafts:", result.error);
+        if (response.ok) {
+          setDrafts(result.data || []);
+        } else {
+          console.error("Error fetching drafts:", result.error);
+          toast({
+            title: "Error",
+            description: "Failed to load drafts",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching drafts:", error);
         toast({
           title: "Error",
           description: "Failed to load drafts",
           variant: "destructive",
         });
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [isSignedIn]
+  );
+
+  // Fetch subscription limits
+  const fetchLimits = useCallback(async () => {
+    if (!isSignedIn) {
+      setLimits(null);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/subscription/status");
+      if (response.ok) {
+        const result = await response.json();
+        setLimits(result.limits?.limits || null);
       }
     } catch (error) {
-      console.error("Error fetching drafts:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load drafts",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error("Error fetching limits:", error);
     }
-  };
+  }, [isSignedIn]);
 
   useEffect(() => {
     fetchDrafts();
-  }, [isSignedIn]);
+    fetchLimits();
+  }, [isSignedIn, fetchDrafts, fetchLimits]);
+
+  // Refresh when refreshTrigger changes (without remounting or showing loading)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchDrafts(false); // Don't show loading spinner on refresh
+      fetchLimits();
+    }
+  }, [refreshTrigger, fetchDrafts]);
+
+  // Note: Auto-selection is handled in DashboardLayout to avoid state conflicts
 
   const handleDelete = async (draftId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent selecting draft when clicking delete
@@ -95,15 +133,31 @@ export const DraftsSidebar = ({
       });
 
       if (response.ok) {
-        setDrafts(drafts.filter((d) => d.id !== draftId));
+        // Update local state immediately - no refresh needed
+        const updatedDrafts = drafts.filter((d) => d.id !== draftId);
+        setDrafts(updatedDrafts);
         toast({
           title: "Success",
           description: "Draft deleted",
         });
-        // If deleted draft was selected, clear selection
+        // If deleted draft was selected, select the next one in the stack
         if (selectedDraftId === draftId) {
-          onNewDraft();
+          const currentIndex = drafts.findIndex((d) => d.id === draftId);
+          // Find the next draft (the one below in the stack, or the one above if at the end)
+          if (updatedDrafts.length > 0) {
+            // Select the draft at the same index, or the last one if we deleted the last item
+            const nextDraft =
+              currentIndex < updatedDrafts.length
+                ? updatedDrafts[currentIndex]
+                : updatedDrafts[updatedDrafts.length - 1];
+            onSelectDraft(nextDraft);
+          } else {
+            // No drafts left - clear selection (don't create new draft)
+            onSelectDraft(null); // Clear selection
+          }
         }
+        // Update limits after deletion
+        fetchLimits();
       } else {
         const result = await response.json();
         toast({
@@ -126,9 +180,40 @@ export const DraftsSidebar = ({
 
   const getDraftTitle = (draft: Draft) => {
     if (draft.name) return draft.name;
+    // Try to get name from review text
+    if (draft.review_data?.reviewText) {
+      const text = draft.review_data.reviewText.trim();
+      if (text) {
+        const trimmed = text.substring(0, 50);
+        const lastSpace = trimmed.lastIndexOf(" ");
+        return lastSpace > 0 ? trimmed.substring(0, lastSpace) : trimmed;
+      }
+    }
+    // Show "New Draft" for empty drafts
     const platform = draft.platform || "Untitled";
-    return `${platform.charAt(0).toUpperCase() + platform.slice(1)} Review`;
+    return `New ${platform.charAt(0).toUpperCase() + platform.slice(1)} Review`;
   };
+
+  const handleNewDraft = () => {
+    // Check if user can create more drafts
+    if (limits && limits.drafts.max !== null) {
+      if (limits.drafts.used >= limits.drafts.max) {
+        toast({
+          title: "Draft limit reached",
+          description: `You've reached your ${tier} plan limit of ${limits.drafts.max} drafts. Upgrade to create more!`,
+          variant: "destructive",
+        });
+        window.location.href = "/subscription";
+        return;
+      }
+    }
+    onNewDraft();
+  };
+
+  const canCreateNewDraft =
+    !limits ||
+    limits.drafts.max === null ||
+    limits.drafts.used < limits.drafts.max;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -161,15 +246,21 @@ export const DraftsSidebar = ({
         <p className="text-sm font-medium">Drafts</p>
         <div>
           <Button
-            onClick={onNewDraft}
-            className=" cursor-pointer"
+            onClick={handleNewDraft}
+            className="cursor-pointer"
             size="sm"
             variant="secondary"
+            disabled={!canCreateNewDraft}
+            title={
+              !canCreateNewDraft
+                ? `Draft limit reached (${limits?.drafts.used}/${limits?.drafts.max}). Upgrade to create more!`
+                : "Create new draft"
+            }
           >
-            <Plus className=" h-4 w-4" />
+            <Plus className="h-4 w-4" />
             New Draft
           </Button>
-          <Button variant="link" size="sm" className=" cursor-pointer">
+          <Button variant="link" size="sm" className="cursor-pointer">
             <EllipsisVertical />
           </Button>
         </div>

@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { PlatformSelector } from "./PlatformSelector";
 import { ReviewPreview } from "./ReviewPreview";
 import { ReviewForm } from "./ReviewForm";
 import { Button } from "@/components/ui/button";
-import { Download, Save, Loader2 } from "lucide-react";
+import { Download, Save, Loader2, Brain } from "lucide-react";
 import html2canvas from "html2canvas";
 import { toast } from "@/hooks/use-toast";
+import ReviewAi from "./platforms/ReviewAi";
+import { Label } from "@radix-ui/react-label";
+import { GoogleReviewData } from "@/types/review";
+import { Switch } from "@/components/ui/switch";
 
 interface Draft {
   id: string;
@@ -36,6 +40,8 @@ export const ReviewEditor = ({
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [reviewData, setReviewData] = useState<any>({
     platform: null,
     reviewerName: "",
@@ -55,6 +61,105 @@ export const ReviewEditor = ({
     // TripAdvisor-specific
     contributionLevel: "",
   });
+
+  // Generate draft name from review text
+  const generateDraftName = useCallback((reviewText: string): string | null => {
+    if (!reviewText || !reviewText.trim()) {
+      return null;
+    }
+    // Take first 50 characters, trim to last complete word
+    const trimmed = reviewText.trim().substring(0, 50);
+    const lastSpace = trimmed.lastIndexOf(" ");
+    const name = lastSpace > 0 ? trimmed.substring(0, lastSpace) : trimmed;
+    return name || null;
+  }, []);
+
+  // Auto-save function
+  const autoSaveDraft = useCallback(async () => {
+    if (!isAuthenticated || !selectedPlatform) {
+      return;
+    }
+
+    // Don't auto-save if review text is empty
+    if (!reviewData.reviewText || !reviewData.reviewText.trim()) {
+      return;
+    }
+
+    try {
+      const draftName = generateDraftName(reviewData.reviewText);
+      const draftData = {
+        platform: selectedPlatform,
+        reviewData: {
+          ...reviewData,
+          platform: selectedPlatform,
+        },
+        name: draftName,
+      };
+
+      if (currentDraftId) {
+        // Update existing draft
+        const response = await fetch(`/api/drafts/${currentDraftId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reviewData: draftData.reviewData,
+            name: draftName,
+          }),
+        });
+
+        if (response.ok) {
+          // Silently update - no refresh needed, draft is already in sidebar
+          // Only the name/timestamp might change, but that's not critical to refresh
+        }
+      } else {
+        // Create new draft - this needs sidebar refresh
+        const response = await fetch("/api/drafts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draftData),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setCurrentDraftId(result.data.id);
+          // Only refresh when a NEW draft is created
+          if (onDraftChange) {
+            onDraftChange();
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail for auto-save - don't show error toast
+      console.error("Auto-save error:", error);
+    }
+  }, [
+    isAuthenticated,
+    selectedPlatform,
+    reviewData,
+    currentDraftId,
+    generateDraftName,
+    onDraftChange,
+  ]);
+
+  // Debounced auto-save effect
+  useEffect(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Only auto-save if user is authenticated and has selected a platform
+    if (isAuthenticated && selectedPlatform && reviewData.reviewText) {
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveDraft();
+      }, 2000); // 2 second debounce
+    }
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [reviewData, isAuthenticated, selectedPlatform, autoSaveDraft]);
 
   // Load draft when selected
   useEffect(() => {
@@ -141,13 +246,14 @@ export const ReviewEditor = ({
     try {
       setSaving(true);
 
+      const draftName = generateDraftName(reviewData.reviewText);
       const draftData = {
         platform: selectedPlatform,
         reviewData: {
           ...reviewData,
           platform: selectedPlatform,
         },
-        name: null, // Can add name input later
+        name: draftName,
       };
 
       if (currentDraftId) {
@@ -157,6 +263,7 @@ export const ReviewEditor = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             reviewData: draftData.reviewData,
+            name: draftName,
           }),
         });
 
@@ -176,6 +283,8 @@ export const ReviewEditor = ({
           title: "Success",
           description: "Draft updated successfully!",
         });
+
+        // No refresh needed - draft is already in sidebar
       } else {
         // Create new draft
         const response = await fetch("/api/drafts", {
@@ -204,7 +313,7 @@ export const ReviewEditor = ({
           description: "Draft saved successfully!",
         });
 
-        // Refresh drafts list
+        // Refresh sidebar only when a NEW draft is created (not on update)
         if (onDraftChange) {
           onDraftChange();
         }
@@ -222,6 +331,11 @@ export const ReviewEditor = ({
     }
   };
 
+  const [aiMode, setAiMode] = useState(false);
+  const handleAiModeChange = () => {
+    setAiMode(!aiMode);
+  };
+
   return (
     <div className="w-full mx-auto mt-12">
       <div className="w-full">
@@ -235,54 +349,79 @@ export const ReviewEditor = ({
       </div>
       <div className="flex flex-col lg:flex-row mt-12 w-full">
         {/* Left Side - Editor */}
-        <div className="space-y-6 flex-1 w-full mr-8">
+        <div className="space-y-6  w-full flex-1 mb-6 ">
           {selectedPlatform && (
-            <div className="">
-              <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">
-                Review Details
-              </h2>
-              <ReviewForm
-                reviewData={reviewData}
-                onChange={setReviewData}
-                platform={selectedPlatform}
-              />
+            <div className="min-w-[300px] w-full pr-6 ">
+              <div className="flex flex-col items-start">
+                <h2 className="text-sm uppercase text-muted-foreground mb-4  font-semibold ">
+                  Review Details
+                </h2>
+                <div className="flex flex-col items-start gap-2 w-full justify-between border rounded-lg p-2">
+                  <div className="flex items-center gap-2 w-full justify-between">
+                    <Label
+                      htmlFor="aiMode"
+                      className="cursor-pointer text-sm flex gap-2 items-center"
+                    >
+                      <Brain className="h-4 w-4 text-muted-foreground" />
+                      AI Fill
+                    </Label>
+                    <Switch
+                      id="aiMode"
+                      checked={aiMode}
+                      onCheckedChange={(checked: boolean) => setAiMode(checked)}
+                    />
+                  </div>
+                  {aiMode && (
+                    <ReviewAi
+                      onToneChange={(values: any) =>
+                        setReviewData({ ...reviewData, tone: values })
+                      }
+                      onClose={() => setAiMode(false)}
+                      onReviewGenerated={onDraftChange}
+                      platform={selectedPlatform}
+                      draftId={currentDraftId || undefined}
+                    />
+                  )}
+                </div>
+                {!aiMode && (
+                  <ReviewForm
+                    reviewData={reviewData}
+                    onChange={setReviewData}
+                    platform={selectedPlatform}
+                  />
+                )}
+              </div>
             </div>
           )}
 
-          {selectedPlatform && (
-            <div className="flex gap-4">
-              <Button
-                onClick={handleSave}
-                variant="outline"
-                className="flex-1"
-                size="lg"
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {isAuthenticated
-                      ? currentDraftId
-                        ? "Update Draft"
-                        : "Save Draft"
-                      : "Sign Up to Save"}
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleDownload}
-                variant="default"
-                className="flex-1"
-                size="lg"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
+          {selectedPlatform && !aiMode && (
+            <div className="flex flex-col gap-4 min-w-[300px] w-full pr-6">
+              {/* Save & Download Buttons */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={handleSave}
+                  variant="outline"
+                  className="flex-1"
+                  size="sm"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {isAuthenticated
+                        ? currentDraftId
+                          ? "Update Draft"
+                          : "Save Draft"
+                        : "Sign Up to Save"}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -298,6 +437,8 @@ export const ReviewEditor = ({
                 <ReviewPreview
                   platform={selectedPlatform}
                   reviewData={{ ...reviewData, platform: selectedPlatform }}
+                  draftId={currentDraftId}
+                  onReviewGenerated={onDraftChange}
                 />
               ) : (
                 <div className="text-center text-muted-foreground">

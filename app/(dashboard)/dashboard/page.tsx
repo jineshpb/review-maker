@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] from-background via-background to-muted/20">
+    <div className="min-h-[calc(100vh-4rem)] bg-white ">
       {/* Sync user to Supabase on page load (creates user + subscription if needed) */}
       <UserSync />
 
