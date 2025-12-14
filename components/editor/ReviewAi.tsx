@@ -371,10 +371,6 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
               </div>
               {isSignedIn && aiFillsLimit && (
                 <div className="flex items-center gap-2 justify-between text-xs text-muted-foreground">
-                  <span>
-                    AI fills: {aiFillsLimit.used}/
-                    {aiFillsLimit.max === null ? "∞" : aiFillsLimit.max}
-                  </span>
                   {aiFillsLimit.max !== null &&
                     aiFillsLimit.used >= aiFillsLimit.max && (
                       <a
@@ -401,7 +397,7 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
           <div className="relative">
             <div
               ref={containerRef}
-              className="relative  border-2 border-border rounded-lg bg-muted/30 mx-auto "
+              className="relative border-2 border-border rounded-lg bg-muted/30 mx-auto select-none"
               style={{
                 width: GRID_SIZE,
                 height: GRID_SIZE,
@@ -419,15 +415,15 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
               </div>
 
               {/* Corner labels */}
-              <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 pointer-events-none select-none">
                 {/* Top - Professional */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground select-none">
                   Positive
                 </div>
 
                 {/* Left - Concise */}
                 <div
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground select-none"
                   style={{
                     writingMode: "vertical-rl",
                     textOrientation: "mixed",
@@ -438,7 +434,7 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
 
                 {/* Right - Expanded */}
                 <div
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground select-none"
                   style={{
                     writingMode: "vertical-rl",
                     textOrientation: "mixed",
@@ -448,7 +444,7 @@ const ReviewAi: React.FC<ReviewAiProps> = ({
                 </div>
 
                 {/* Bottom - Casual */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground select-none">
                   Negative
                 </div>
               </div>
