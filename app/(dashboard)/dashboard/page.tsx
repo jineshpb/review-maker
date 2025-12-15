@@ -15,14 +15,16 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white ">
+    <div className="h-screen bg-white flex flex-col">
       {/* Sync user to Supabase on page load (creates user + subscription if needed) */}
       <UserSync />
 
-      <DashboardLayout
-        isAuthenticated={true}
-        subscriptionData={subscriptionData.data}
-      />
+      <div className="flex-1 overflow-hidden">
+        <DashboardLayout
+          isAuthenticated={true}
+          subscriptionData={subscriptionData.data}
+        />
+      </div>
     </div>
   );
 }

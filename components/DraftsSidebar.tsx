@@ -7,6 +7,8 @@ import { Plus, Trash2, Edit2, Loader2, EllipsisVertical } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getUserSubscription } from "@/lib/supabase/subscriptions";
 import { Database } from "@/types/database";
+import Image from "next/image";
+import { Logo } from "./Logo";
 
 interface Draft {
   id: string;
@@ -232,7 +234,7 @@ export const DraftsSidebar = ({
 
   if (!isSignedIn) {
     return (
-      <div className="w-64 border-r bg-muted/30 p-4">
+      <div className="w-64 border-r bg-muted/30 p-4 h-full">
         <p className="text-sm text-muted-foreground text-center">
           Sign in to save drafts
         </p>
@@ -242,12 +244,19 @@ export const DraftsSidebar = ({
 
   const sidebarHeader = () => {
     return (
-      <div className="py-4 pl-4 border-b flex items-center justify-between">
-        <p className="text-sm font-medium">Drafts</p>
-        <div>
+      <div className=" flex flex-col gap-2  w-full relative ">
+        <div className="w-full h-4 bg-primary absolute -top-2 left-0 blur-lg"></div>
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Logo className="text-primary text-2xl" />
+          <span className="text-lg font-bold tracking-tight bg-linear-to-br from-primary to-primary/80 bg-clip-text text-transparent">
+            ReviewPicasso
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 w-full  p-4">
           <Button
             onClick={handleNewDraft}
-            className="cursor-pointer"
+            className="cursor-pointer w-full "
             size="sm"
             variant="secondary"
             disabled={!canCreateNewDraft}
@@ -260,20 +269,17 @@ export const DraftsSidebar = ({
             <Plus className="h-4 w-4" />
             New Draft
           </Button>
-          <Button variant="link" size="sm" className="cursor-pointer">
-            <EllipsisVertical />
-          </Button>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="w-64 border-r bg-muted/30 flex flex-col h-full">
+    <div className="w-64 border-r bg-muted/30 flex flex-col h-full ">
       {/* Header */}
       {sidebarHeader()}
       {/* Drafts List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto h-full">
         {loading ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

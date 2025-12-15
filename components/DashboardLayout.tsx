@@ -161,7 +161,7 @@ export const DashboardLayout = ({
   }, [isAuthenticated, selectedDraft, draftsLoaded]);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
+    <div className="flex h-full">
       {/* Sidebar */}
       <DraftsSidebar
         onSelectDraft={handleSelectDraft}
@@ -173,15 +173,13 @@ export const DashboardLayout = ({
 
       {/* Main Editor Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 py-8">
-          <ReviewEditor
-            key={selectedDraft?.updated_at || selectedDraft?.id || "no-draft"}
-            isAuthenticated={isAuthenticated}
-            selectedDraft={selectedDraft}
-            onDraftChange={handleDraftChange}
-            onDraftRefetch={handleDraftRefetch}
-          />
-        </div>
+        <ReviewEditor
+          key={selectedDraft?.updated_at || selectedDraft?.id || "no-draft"}
+          isAuthenticated={isAuthenticated}
+          selectedDraft={selectedDraft}
+          onDraftChange={handleDraftChange}
+          onDraftRefetch={handleDraftRefetch}
+        />
       </div>
     </div>
   );

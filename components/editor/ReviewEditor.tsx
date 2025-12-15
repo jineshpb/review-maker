@@ -15,6 +15,7 @@ import { Label } from "@radix-ui/react-label";
 import { GoogleReviewData } from "@/types/review";
 import { Switch } from "@/components/ui/switch";
 import ReviewAi from "./ReviewAi";
+import Header from "../Header";
 
 interface Draft {
   id: string;
@@ -350,122 +351,127 @@ export const ReviewEditor = ({
   };
 
   return (
-    <div className="w-full mx-auto mt-12">
-      <div className="w-full">
-        <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">
-          Choose Platform
-        </h2>
-        <PlatformSelector
-          selectedPlatform={selectedPlatform}
-          onSelect={setSelectedPlatform}
-        />
-      </div>
-      <div className="flex flex-col lg:flex-row mt-12 w-full">
-        {/* Left Side - Editor */}
-        <div className="space-y-6  w-full flex-1 mb-6 ">
-          {selectedPlatform && (
-            <div className="min-w-[300px] w-full pr-6 ">
-              <div className="flex flex-col items-start">
-                <h2 className="text-sm uppercase text-muted-foreground mb-4  font-semibold ">
-                  Review Details
-                </h2>
-                <div className="flex flex-col items-start gap-2 w-full justify-between border rounded-lg p-2">
-                  <div className="flex items-center gap-2 w-full justify-between">
-                    <Label
-                      htmlFor="aiMode"
-                      className="cursor-pointer text-sm flex gap-2 items-center"
-                    >
-                      <Brain className="h-4 w-4 text-muted-foreground" />
-                      AI Fill
-                    </Label>
-                    <Switch
-                      id="aiMode"
-                      checked={aiMode}
-                      onCheckedChange={(checked: boolean) => setAiMode(checked)}
-                    />
+    <>
+      <Header />
+      <div className="w-full mx-auto container px-6">
+        <div className="w-full mt-12 ">
+          <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">
+            Choose Platform
+          </h2>
+          <PlatformSelector
+            selectedPlatform={selectedPlatform}
+            onSelect={setSelectedPlatform}
+          />
+        </div>
+        <div className="flex flex-col lg:flex-row mt-12 w-full">
+          {/* Left Side - Editor */}
+          <div className="space-y-6  w-full flex-1 mb-6 ">
+            {selectedPlatform && (
+              <div className="min-w-[300px] w-full pr-6 ">
+                <div className="flex flex-col items-start">
+                  <h2 className="text-sm uppercase text-muted-foreground mb-4  font-semibold ">
+                    Review Details
+                  </h2>
+                  <div className="flex flex-col items-start gap-2 w-full justify-between border rounded-lg p-2">
+                    <div className="flex items-center gap-2 w-full justify-between">
+                      <Label
+                        htmlFor="aiMode"
+                        className="cursor-pointer text-sm flex gap-2 items-center"
+                      >
+                        <Brain className="h-4 w-4 text-muted-foreground" />
+                        AI Fill
+                      </Label>
+                      <Switch
+                        id="aiMode"
+                        checked={aiMode}
+                        onCheckedChange={(checked: boolean) =>
+                          setAiMode(checked)
+                        }
+                      />
+                    </div>
+                    {aiMode && (
+                      <ReviewAi
+                        onToneChange={(values: any) =>
+                          setReviewData({ ...reviewData, tone: values })
+                        }
+                        onClose={() => setAiMode(false)}
+                        onReviewGenerated={onDraftChange}
+                        onDraftRefetch={onDraftRefetch}
+                        platform={selectedPlatform}
+                        draftId={currentDraftId || undefined}
+                      />
+                    )}
                   </div>
-                  {aiMode && (
-                    <ReviewAi
-                      onToneChange={(values: any) =>
-                        setReviewData({ ...reviewData, tone: values })
-                      }
-                      onClose={() => setAiMode(false)}
-                      onReviewGenerated={onDraftChange}
-                      onDraftRefetch={onDraftRefetch}
+                  {!aiMode && (
+                    <ReviewForm
+                      reviewData={reviewData}
+                      onChange={setReviewData}
                       platform={selectedPlatform}
-                      draftId={currentDraftId || undefined}
                     />
                   )}
                 </div>
-                {!aiMode && (
-                  <ReviewForm
-                    reviewData={reviewData}
-                    onChange={setReviewData}
+              </div>
+            )}
+
+            {selectedPlatform && !aiMode && (
+              <div className="flex flex-col gap-4 min-w-[300px] w-full pr-6">
+                {/* Save & Download Buttons */}
+                <div className="flex gap-4">
+                  <Button
+                    onClick={handleSave}
+                    variant="outline"
+                    className="flex-1"
+                    size="sm"
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        {isAuthenticated
+                          ? currentDraftId
+                            ? "Update Draft"
+                            : "Save Draft"
+                          : "Sign Up to Save"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Side - Preview */}
+          <div className=" h-fit w-full">
+            <div className="w-full">
+              <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">
+                Preview
+              </h2>
+              <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px] overflow-hidden">
+                {selectedPlatform ? (
+                  <ReviewPreview
                     platform={selectedPlatform}
+                    reviewData={{ ...reviewData, platform: selectedPlatform }}
+                    draftId={currentDraftId}
+                    onReviewGenerated={onDraftChange}
                   />
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    <p className="text-lg">Select a platform to start</p>
+                    <p className="text-sm mt-2">
+                      Choose from Google, Amazon, Yelp, and more
+                    </p>
+                  </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {selectedPlatform && !aiMode && (
-            <div className="flex flex-col gap-4 min-w-[300px] w-full pr-6">
-              {/* Save & Download Buttons */}
-              <div className="flex gap-4">
-                <Button
-                  onClick={handleSave}
-                  variant="outline"
-                  className="flex-1"
-                  size="sm"
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      {isAuthenticated
-                        ? currentDraftId
-                          ? "Update Draft"
-                          : "Save Draft"
-                        : "Sign Up to Save"}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Side - Preview */}
-        <div className=" h-fit w-full">
-          <div className="w-full">
-            <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">
-              Preview
-            </h2>
-            <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px] overflow-hidden">
-              {selectedPlatform ? (
-                <ReviewPreview
-                  platform={selectedPlatform}
-                  reviewData={{ ...reviewData, platform: selectedPlatform }}
-                  draftId={currentDraftId}
-                  onReviewGenerated={onDraftChange}
-                />
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  <p className="text-lg">Select a platform to start</p>
-                  <p className="text-sm mt-2">
-                    Choose from Google, Amazon, Yelp, and more
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };

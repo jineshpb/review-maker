@@ -14,14 +14,6 @@ import { HeroSection } from "@/components/landing/HeroSection";
 const FeaturesSection = () => {
   return (
     <section className="relative py-44 overflow-hidden">
-      {/* <Image
-        src="/Blur.png"
-        alt="Features Background"
-        width={1000}
-        height={1000}
-        className="absolute inset-0 w-full h-full object-cover"
-      /> */}
-
       {/* Background blur */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none top-0 opacity-40 ">
         <Image
