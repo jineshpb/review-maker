@@ -17,7 +17,7 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
       "border border-gray-700",
       "text-white",
       "rounded-[10px]",
-      "px-[30px] py-[12px]",
+      "px-[20px] py-[8px]",
       "gap-3",
       "shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05),0px_10px_10px_0px_rgba(0,0,0,0.1),0px_10px_40px_0px_rgba(255,255,255,0.15)]",
       "hover:opacity-90",
