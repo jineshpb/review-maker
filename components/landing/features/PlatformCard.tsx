@@ -1,11 +1,50 @@
 "use client";
 
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export interface PlatformCardProps {
   className?: string;
 }
+
+type HexagonIconProps = {
+  className?: string;
+  color?: string;
+  brandName?: string;
+};
+
+const HexagonIcon = ({ className, color, brandName }: HexagonIconProps) => {
+  return (
+    <>
+      {!brandName ? (
+        <svg
+          viewBox="0 0 542 475"
+          xmlns="http://www.w3.org/2000/svg"
+          className={cn("w-full h-full fill-current/30 ", className)}
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M145.453 0.5H396.359C403.326 0.500131 409.763 4.21689 413.246 10.25L538.699 227.541C542.183 233.574 542.183 241.008 538.699 247.041L413.246 464.332C409.763 470.365 403.326 474.082 396.359 474.082H145.453C138.486 474.082 132.049 470.365 128.565 464.332L3.1123 247.041C-0.370992 241.008 -0.370953 233.574 3.1123 227.541L128.565 10.25C132.049 4.21668 138.486 0.5 145.453 0.5Z" />
+        </svg>
+      ) : (
+        <svg
+          viewBox="0 0 542 475"
+          xmlns="http://www.w3.org/2000/svg"
+          className={cn("w-full h-full fill-current ", className)}
+          aria-hidden="true"
+          focusable="false"
+          style={{
+            backgroundImage: "url('/pattern.png')",
+            backgroundRepeat: "repeat",
+            backgroundSize: "auto",
+            opacity: 0.5,
+          }}
+        >
+          <path d="M145.453 0.5H396.359C403.326 0.500131 409.763 4.21689 413.246 10.25L538.699 227.541C542.183 233.574 542.183 241.008 538.699 247.041L413.246 464.332C409.763 470.365 403.326 474.082 396.359 474.082H145.453C138.486 474.082 132.049 470.365 128.565 464.332L3.1123 247.041C-0.370992 241.008 -0.370953 233.574 3.1123 227.541L128.565 10.25C132.049 4.21668 138.486 0.5 145.453 0.5Z" />
+        </svg>
+      )}
+    </>
+  );
+};
 
 // Hexagon dimensions
 const HEXAGON_WIDTH = 131;
@@ -67,6 +106,8 @@ const HexagonPlatform = ({
   color: string;
   position: { top: string; left: string };
 }) => {
+  const hexFillColor = name ? color : "rgba(255,255,255,0.12)";
+
   return (
     <div
       className="absolute "
@@ -76,14 +117,12 @@ const HexagonPlatform = ({
         transform: "translate(-50%, -50%)",
       }}
     >
-      <div className="relative w-[131px] h-[113px] ">
+      <div className="relative w-[131px] h-[113px]  text-white/10 hover:text-white/20 transition-all duration-300 ">
         {/* Hexagon Image */}
-        <Image
-          src="/hexagon.png"
-          alt=""
-          width={500}
-          height={500}
-          className="w-full h-full object-cover opacity-50 hover:opacity-150 transition-opacity duration-300 "
+        <HexagonIcon
+          color={"#ffffff20"}
+          className=" transition-opacity duration-300"
+          brandName={name}
         />
         {/* Platform Name Overlay */}
         {name ? (

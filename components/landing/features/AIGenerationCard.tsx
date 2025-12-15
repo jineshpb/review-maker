@@ -2,12 +2,34 @@
 
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useMemo, useState } from "react";
+import CountUp from "react-countup";
 
 export interface AIGenerationCardProps {
   className?: string;
 }
 
 export const AIGenerationCard = ({ className }: AIGenerationCardProps) => {
+  const [isProgressActive, setIsProgressActive] = useState(false);
+
+  const radius = 70;
+  const circumference = useMemo(() => 2 * Math.PI * radius, [radius]);
+  const baseProgress = 0.5;
+  const progress = isProgressActive ? 1 : baseProgress;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  const handleProgressEnter = () => setIsProgressActive(true);
+  const handleProgressLeave = () => setIsProgressActive(false);
+  const handleProgressFocus = () => setIsProgressActive(true);
+  const handleProgressBlur = () => setIsProgressActive(false);
+  const handleProgressKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (
+    event
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setIsProgressActive(true);
+  };
+
   return (
     <div
       className={cn(
@@ -28,13 +50,31 @@ export const AIGenerationCard = ({ className }: AIGenerationCardProps) => {
             className="object-cover absolute top-[120px] left-[50px] z-10"
           />
           <div className="absolute inset-0 top-0 left-1/2 -translate-x-1/2">
-            <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[223px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 transition-all duration-300" />
-            <div className="absolute left-1/2 -translate-x-1/2 top-[10px] w-[249px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 transition-all duration-300" />
-            <div className="absolute left-1/2 -translate-x-1/2 top-[28px] w-[275px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 transition-all duration-300" />
+            <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[223px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 transition-all duration-300 hover:scale-105" />
+            <div className="absolute left-1/2 -translate-x-1/2 top-[10px] w-[249px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 hover:scale-105 transition-all duration-300" />
+            <div
+              className="absolute left-1/2 -translate-x-1/2 top-[24px] w-[275px] h-[148px] bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm hover:bg-white/20 transition-all duration-300 hover:scale-105"
+              style={{
+                backgroundImage: "url('/pattern.png')",
+                backgroundRepeat: "repeat",
+                backgroundSize: "auto",
+                opacity: 0.5,
+              }}
+            />
           </div>
 
           {/* Progress Ring */}
-          <div className="absolute right-[30px] top-[84px] w-[150px] h-[150px]">
+          <div
+            className="absolute right-[30px] top-[84px] w-[150px] h-[150px] outline-none"
+            tabIndex={0}
+            role="img"
+            aria-label="AI generation progress"
+            onMouseEnter={handleProgressEnter}
+            onMouseLeave={handleProgressLeave}
+            onFocus={handleProgressFocus}
+            onBlur={handleProgressBlur}
+            onKeyDown={handleProgressKeyDown}
+          >
             {/* Outer Ring */}
             <svg
               width="150"
@@ -45,24 +85,23 @@ export const AIGenerationCard = ({ className }: AIGenerationCardProps) => {
               <circle
                 cx="75"
                 cy="75"
-                r="70"
+                r={radius}
                 fill="none"
                 stroke="rgba(255,255,255,0.1)"
                 strokeWidth="2"
               />
-              {/* Progress Arc (50%) */}
+              {/* Progress Arc (animates 50% -> 100%) */}
               <circle
                 cx="75"
                 cy="75"
-                r="70"
+                r={radius}
                 fill="none"
                 stroke="rgba(255,255,255,0.3)"
                 strokeWidth="2"
-                strokeDasharray={`${2 * Math.PI * 70 * 0.5} ${
-                  2 * Math.PI * 70
-                }`}
-                strokeDashoffset={2 * Math.PI * 70 * 0.25}
+                strokeDasharray={circumference}
                 transform="rotate(-90 75 75)"
+                className="transition-[stroke-dashoffset] duration-700 ease-out"
+                style={{ strokeDashoffset }}
               />
             </svg>
             {/* Inner Circle */}
@@ -80,7 +119,16 @@ export const AIGenerationCard = ({ className }: AIGenerationCardProps) => {
 
               {/* Percentage Text */}
               <span className="text-2xl font-medium tracking-tight text-white/50">
-                50%
+                {isProgressActive ? (
+                  <CountUp
+                    start={baseProgress * 100}
+                    end={100}
+                    duration={0.7}
+                    suffix="%"
+                  />
+                ) : (
+                  `${Math.round(baseProgress * 100)}%`
+                )}
               </span>
             </div>
           </div>

@@ -20,8 +20,8 @@ export const CustomizableTemplatesCard = ({
       )}
     >
       {/* Visual Content Area */}
-      <div className="absolute inset-0 flex items-center justify-center  ">
-        <div className="relative w-full h-full max-w-[336px] max-h-[199px] ">
+      <div className="absolute inset-0 flex items-start justify-center  ">
+        <div className="relative w-full h-full max-w-[336px] max-h-[250px] mt-8 ">
           {/* Placeholder for video/template preview */}
           <div
             className="w-full h-full bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm flex overflow-hidden justify-center group hover:bg-white/20 transition-all duration-300"
@@ -35,9 +35,9 @@ export const CustomizableTemplatesCard = ({
             <Image
               src="/icons.svg"
               alt="template"
-              width={200}
+              width={300}
               height={200}
-              className=" self-start group-hover:translate-y-[-100px] transition-all duration-300  "
+              className=" self-start group-hover:translate-y-[-150px] transition-all duration-300  "
             />
           </div>
         </div>

@@ -20,10 +20,10 @@ export const HighResolutionExportsCard = ({
       )}
     >
       {/* Visual Content Area - Three Stacked Cards */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="relative w-full h-full max-w-[720px] max-h-[210px] mt-24">
+      <div className="absolute inset-0 flex items-start justify-center ">
+        <div className="relative w-full h-full max-w-[720px] mt-8 max-h-[280px]  flex items-center justify-center group  ">
           {/* Card 3 - Back Layer (rightmost) */}
-          <div className="absolute left-[180px] top-[60px] w-[295px] h-[148px] bg-card/30 border border-white/10 rounded-lg backdrop-blur-sm">
+          <div className=" absolute left-1/2 -translate-x-1/4  top-8 hover:skew-6 skew-0 group-hover:skew-6 w-[295px] h-[148px] bg-card/30 border border-white/10 rounded-lg backdrop-blur-sm transition-all duration-300 ">
             {/* Content lines */}
             <div className="p-4 flex flex-col gap-2">
               <div className="h-2 w-[148px] bg-white/20 rounded" />
@@ -33,7 +33,7 @@ export const HighResolutionExportsCard = ({
           </div>
 
           {/* Card 2 - Middle Layer */}
-          <div className="absolute left-[32px] top-[30px] w-[295px] h-[148px] bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm">
+          <div className=" hover:skew-6 group-hover:skew-6 absolute left-1/2 -translate-x-1/2 top-16 w-[295px] h-[148px] bg-card/40 border border-white/10 rounded-lg backdrop-blur-sm transition-all duration-300">
             {/* Content lines */}
             <div className="p-4 flex flex-col gap-2">
               <div className="h-2 w-[148px] bg-white/20 rounded" />
@@ -43,7 +43,7 @@ export const HighResolutionExportsCard = ({
           </div>
 
           {/* Card 1 - Front Layer (leftmost) */}
-          <div className="absolute left-0 top-0 w-[295px] h-[148px] bg-card/50 border border-white/10 rounded-lg backdrop-blur-sm">
+          <div className=" hover:skew-6 group-hover:skew-6 absolute left-1/2 -translate-x-3/4 top-24 w-[295px] h-[148px] bg-card/50 border border-white/10 rounded-lg backdrop-blur-sm transition-all duration-300">
             {/* Content lines */}
             <div className="p-4 flex flex-col gap-2">
               <div className="h-3 w-[96px] bg-white/30 rounded" />
@@ -59,8 +59,7 @@ export const HighResolutionExportsCard = ({
             style={{
               background:
                 "linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 20%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)",
-              clipPath:
-                "path('M 0,2 Q 180,0 360,2 T 720,2')",
+              clipPath: "path('M 0,2 Q 180,0 360,2 T 720,2')",
             }}
           />
         </div>
@@ -78,4 +77,3 @@ export const HighResolutionExportsCard = ({
     </div>
   );
 };
-
