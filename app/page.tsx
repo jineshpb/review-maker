@@ -80,8 +80,8 @@ const CTASection = () => {
             Ready to get started ?
           </h2>
           <p className="text-xl text-white/50 tracking-tight mb-10">
-            Create your first review screenshot in minutes. No credit card
-            required.
+            Create your first review screenshot in minutes. <br /> No credit
+            card required.
           </p>
           <GlassButton asChild className="group">
             <Link href="/sign-up">
@@ -98,7 +98,10 @@ const CTASection = () => {
 // Footer Section Component
 const FooterSection = () => {
   return (
-    <footer className="border-t border-white/10">
+    <footer className="border-t border-white/10 flex flex-col items-center justify-center">
+      <div className="text-center overflow-hidden font-bold w-full text-white/10 text-[40px] lg:text-[100px] xl:text-[200px] tracking-tighter bg-linear-to-br mt-8 from-white/20 to-black bg-clip-text">
+        ReviewPicasso
+      </div>
       <div className="container mx-auto px-6 py-16">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Logo */}
@@ -119,10 +122,10 @@ const FooterSection = () => {
 
           {/* Products */}
           <div>
-            <h4 className="font-semibold mb-4">Products</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="font-semibold mb-4 text-white/10">Products</h4>
+            <ul className="space-y-2 text-sm text-white/50">
               <li>
-                <Link href="/dashboard" className="hover:text-foreground">
+                <Link href="/dashboard" className="hover:text-white">
                   Dashboard
                 </Link>
               </li>
@@ -136,10 +139,10 @@ const FooterSection = () => {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="font-semibold mb-4 text-white/10">Company</h4>
+            <ul className="space-y-2 text-sm text-white/50">
               <li>
-                <Link href="#" className="hover:text-foreground">
+                <Link href="#" className="hover:text-white">
                   About Us
                 </Link>
               </li>
@@ -153,10 +156,10 @@ const FooterSection = () => {
 
           {/* Resources */}
           <div>
-            <h4 className="font-semibold mb-4">Resources</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="font-semibold mb-4 text-white/10">Resources</h4>
+            <ul className="space-y-2 text-sm text-white/50">
               <li>
-                <Link href="#" className="hover:text-foreground">
+                <Link href="#" className="hover:text-white">
                   Documentation
                 </Link>
               </li>
@@ -170,16 +173,16 @@ const FooterSection = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © 2024 ReviewPicasso. All rights reserved.
+        <div className="border-t border-white/10 pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-white/10">
+            © 2025 ReviewPicasso. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="#" className="hover:text-foreground">
+          <div className="flex items-center gap-2 text-sm text-white/10">
+            <Link href="#" className="hover:text-white/10">
               Terms of Service
             </Link>
             <span>•</span>
-            <Link href="#" className="hover:text-foreground">
+            <Link href="#" className="hover:text-white/10">
               Privacy Policy
             </Link>
           </div>
@@ -194,6 +197,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-linear-to-b from-black to-black/90">
       <LandingHeader />
+
       <HeroSection />
       <FeaturesSection />
       <CTASection />

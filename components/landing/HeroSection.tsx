@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import ToneGrid from "@/components/landing/ToneGrid";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 export const HeroSection = () => {
   const fullText =
@@ -43,7 +44,7 @@ export const HeroSection = () => {
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[807px] h-[807px] rounded-full bg-primary/5 blur-2xl" />
       </div>
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className=" mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-6xl md:text-7xl font-medium tracking-tighter mb-6 bg-linear-to-r from-white via-white/90 to-white/10 bg-clip-text text-transparent">
             High quality review screenshots <br /> in seconds
@@ -59,6 +60,19 @@ export const HeroSection = () => {
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </GlassButton>
+        </div>
+        <div className="absolute inset-0 pointer-events-none top-0  ">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none top-0 opacity-40 ">
+            <Image
+              src="/circle.png"
+              alt="Circle"
+              width={400}
+              height={400}
+              className="absolute inset-0 object-cover top-0 left-1/2 z-10 w-[800px] h-[800px] -translate-x-[400px] translate-y-[180px]  blur-3xl"
+            />
+
+            <div className="absolute top-[200px] left-1/2 -translate-x-1/2 w-[1054px] h-[1054px] rounded-full bg-linear-to-br from-[#D97757] to-[#EF4444] blur-3xl " />
+          </div>
         </div>
 
         {/* Hero Preview - App Screenshot */}
@@ -173,7 +187,7 @@ export const HeroSection = () => {
                     <div className="flex gap-2">
                       {/* Google */}
                       <div className="bg-black/10 border-[0.75px] border-white/20 rounded-md p-1.5 flex gap-1.5 flex-1 items-center">
-                        <div className="w-6 h-6 bg-[#08f] rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center shrink-0">
                           <span className="text-[12px] font-bold text-white flex items-center justify-center">
                             G
                           </span>
@@ -189,7 +203,7 @@ export const HeroSection = () => {
                       </div>
                       {/* Amazon */}
                       <div className="bg-black/10 border-[0.75px] border-white/10 rounded-md p-1.5 flex gap-1.5 flex-1 items-center">
-                        <div className="w-6 h-6 bg-[#ff8d28] rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-6 h-6 bg-orange-900 rounded-full flex items-center justify-center shrink-0">
                           <span className="text-[12px] font-bold text-white">
                             A
                           </span>
@@ -205,7 +219,7 @@ export const HeroSection = () => {
                       </div>
                       {/* Trustpilot */}
                       <div className="bg-black/10 border-[0.75px] border-white/10 rounded-md p-1.5 flex gap-1.5 flex-1 items-center">
-                        <div className="w-6 h-6 bg-[#34c759] rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-6 h-6 bg-green-900 rounded-full flex items-center justify-center shrink-0">
                           <span className="text-[12px] font-bold text-white">
                             T
                           </span>
@@ -247,11 +261,11 @@ export const HeroSection = () => {
                       <div className="bg-black/10 border-[0.75px] border-white/10 rounded-md p-3">
                         {/* Reviewer Info */}
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-6 h-6 bg-[#08f] rounded-full flex items-center justify-center relative shrink-0">
+                          <div className="w-6 h-6 bg-blue-200/20 rounded-full flex items-center justify-center relative shrink-0">
                             <span className="text-[12px] font-bold text-white">
                               J
                             </span>
-                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#ff8d28] rounded-full border border-black" />
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-200/20 rounded-full border border-black" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[9.75px] font-medium text-white">
@@ -270,7 +284,7 @@ export const HeroSection = () => {
                             {[...Array(5)].map((_, i) => (
                               <div
                                 key={i}
-                                className="w-3 h-3 bg-yellow-400 rounded-sm"
+                                className="w-3 h-3 bg-gray-200/20 rounded-sm"
                               />
                             ))}
                           </div>
