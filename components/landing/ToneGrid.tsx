@@ -162,10 +162,10 @@ const ToneGrid = ({ onClick }: ToneGridProps) => {
   return (
     <div
       ref={containerRef}
-      className="w-full aspect-square border border-white/10 rounded-lg p-2 relative select-none overflow-hidden cursor-pointer"
+      className="w-full aspect-square border border-amber-950 rounded-[50px] p-2 relative select-none cursor-pointer drop-shadow-xl/50 border-2  overflow-hidden "
       style={{
         backgroundImage:
-          "linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%), linear-gradient(90deg, rgba(222, 217, 213, 0.1) 0%, rgba(222, 217, 213, 0.1) 100%)",
+          "linear-gradient(180deg, rgba(146, 146, 146, 0.53) 0%, rgba(0, 0, 0, 0.1) 100%), linear-gradient(90deg, rgba(222, 217, 213, 0.1) 0%, rgba(222, 217, 213, 0.1) 100%)",
         backgroundRepeat: "no-repeat, no-repeat",
         backgroundSize: "auto, auto",
         backgroundPosition: "center, center",
@@ -179,13 +179,14 @@ const ToneGrid = ({ onClick }: ToneGridProps) => {
     >
       {/* Background Pattern Image Layer */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-[8px] pointer-events-none rounded-[42px]  overflow-hidden"
         style={{
-          backgroundImage: "url('/pattern.png')",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "85%",
-          backgroundPosition: "center",
-          opacity: 0.4,
+          backgroundImage:
+            "url('/pattern.png'), linear-gradient(180deg, rgba(146, 146, 146, 0.53) 0%, rgba(0, 0, 0, 0.1) 100%), linear-gradient(90deg, rgba(222, 217, 213, 0.1) 0%, rgba(222, 217, 213, 0.1) 100%)",
+          backgroundRepeat: "no-repeat, no-repeat, no-repeat",
+          backgroundSize: "70%, auto, auto",
+          backgroundPosition: "center, center, center",
+          opacity: 1,
         }}
       />
       {/* Labels */}

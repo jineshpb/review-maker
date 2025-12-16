@@ -78,6 +78,10 @@ export const HeroSection = () => {
         {/* Hero Preview - App Screenshot */}
         <div className="mt-20 relative">
           <div className="relative mx-auto max-w-5xl">
+            {/* Tone Control Grid */}
+            <div className="absolute -bottom-8  left-[300px] w-[300px] h-[300px] z-10 drop-shadow-2xl/50">
+              <ToneGrid onClick={handleToneGridClick} />
+            </div>
             {/* Dashboard Preview - Dark Theme Glassmorphism */}
             <div className="backdrop-blur-[7.5px] bg-[rgba(5,5,5,0.9)] border-[0.75px] border-white/10 rounded-[22.5px] shadow-[0px_3.75px_7.5px_0px_rgba(0,0,0,0.05),0px_11.25px_22.5px_0px_rgba(0,0,0,0.05),0px_22.5px_45px_0px_rgba(0,0,0,0.1)] overflow-hidden mix-blend-screen">
               <div className="flex h-[627px]">
@@ -242,7 +246,7 @@ export const HeroSection = () => {
                   {/* AI Fill & Review Preview */}
                   <div className="flex gap-[15px] flex-1 relative z-10">
                     {/* AI Fill Section */}
-                    <div className="w-[262px] flex flex-col gap-2">
+                    <div className="w-[262px] flex flex-col gap-2 ">
                       {/* AI Fill Button */}
                       <div className="border-[0.75px] border-white/10 rounded-md p-1.5 flex items-center gap-1.5 h-7">
                         <div className="w-3.5 h-3.5 bg-white/20 rounded" />
@@ -251,9 +255,6 @@ export const HeroSection = () => {
                         </span>
                         <div className="w-[29px] h-4 bg-white/10 rounded" />
                       </div>
-
-                      {/* Tone Control Grid */}
-                      <ToneGrid onClick={handleToneGridClick} />
                     </div>
 
                     {/* Review Preview Card */}
