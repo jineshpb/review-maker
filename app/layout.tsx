@@ -8,9 +8,50 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Review Screenshot Designer",
+  title:
+    "ReviewPicasso - Create Authentic Review Screenshots | Google, Trustpilot, Amazon",
   description:
-    "Design and create authentic review screenshots for popular platforms",
+    "Create authentic review screenshots for Google Reviews, Trustpilot, Amazon, TripAdvisor and more. AI-powered review generator with customizable templates. Free trial, no credit card required.",
+  keywords: [
+    "review screenshot",
+    "review screenshot generator",
+    "google review screenshot",
+    "trustpilot screenshot",
+    "amazon review screenshot",
+    "tripadvisor screenshot",
+    "fake review screenshot",
+    "review mockup",
+    "testimonial screenshot",
+    "review design tool",
+  ],
+  openGraph: {
+    title: "ReviewPicasso - Create Authentic Review Screenshots",
+    description:
+      "Create authentic review screenshots for Google Reviews, Trustpilot, Amazon, TripAdvisor and more. AI-powered review generator with customizable templates.",
+    type: "website",
+    // Add your actual URL when deployed
+    // url: "https://reviewpicasso.com",
+    // images: [{ url: "https://reviewpicasso.com/og-image.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ReviewPicasso - Create Authentic Review Screenshots",
+    description:
+      "Create authentic review screenshots for Google Reviews, Trustpilot, Amazon, TripAdvisor and more.",
+    // Add your Twitter handle when available
+    // creator: "@reviewpicasso",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({

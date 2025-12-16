@@ -9,6 +9,8 @@ import { ArrowUp, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import LandingHeader from "@/components/landing/landingHeader";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { FAQSection } from "@/components/landing/FAQSection";
+import { SchemaMarkup } from "@/components/landing/SchemaMarkup";
 
 // Features Section Component
 const FeaturesSection = () => {
@@ -187,15 +189,19 @@ const FooterSection = () => {
 // Main Home Component
 export default function Home() {
   return (
-    <div className="min-h-screen bg-linear-to-b from-black to-black/90">
-      <LandingHeader />
+    <>
+      <SchemaMarkup />
+      <div className="min-h-screen bg-linear-to-b from-black to-black/90">
+        <LandingHeader />
 
-      <HeroSection />
-      <FeaturesSection />
-      <CTASection />
-      <FooterSection />
+        <HeroSection />
+        <FeaturesSection />
+        <CTASection />
+        <FAQSection />
+        <FooterSection />
 
-      {/* Scroll to top button */}
-    </div>
+        {/* Scroll to top button */}
+      </div>
+    </>
   );
 }
