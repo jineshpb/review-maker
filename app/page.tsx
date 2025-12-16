@@ -11,6 +11,7 @@ import LandingHeader from "@/components/landing/landingHeader";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { SchemaMarkup } from "@/components/landing/SchemaMarkup";
+import { Logo } from "@/components/Logo";
 
 // Features Section Component
 const FeaturesSection = () => {
@@ -63,7 +64,18 @@ const FeaturesSection = () => {
 // CTA Section Component
 const CTASection = () => {
   return (
-    <section className="relative overflow-hidden w-full h-full !mx-0  py-40">
+    <section className="relative overflow-hidden w-full h-full !mx-0  py-40 group">
+      <div className="absolute -bottom-[500px] left-0 w-full h-full  opacity-40 rotate-180 blur-3xl  scale-y-50 group-hover:scale-y-55 group-hover:scale-x-110 group-hover:blur-4xl transition-all duration-800">
+        <Image
+          src="/circle.png"
+          alt="Circle"
+          width={400}
+          height={400}
+          className="absolute inset-0 object-cover top-0 left-1/2 z-10 w-[800px] h-[800px] -translate-x-[400px] translate-y-[180px]  blur-3xl"
+        />
+
+        <div className="absolute top-[200px] left-1/2 -translate-x-1/2 w-[1054px] h-[1054px] rounded-full bg-linear-to-br from-[#D97757] to-[#EF4444] blur-3xl " />
+      </div>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1054px] h-[1054px] rounded-full bg-primary/5 blur-3xl" />
       </div>
@@ -101,12 +113,11 @@ const FooterSection = () => {
           {/* Logo */}
           <div>
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Image
-                src="/logo.svg"
-                alt="Logo"
-                width={32}
-                height={32}
-                className="grayscale"
+              <Logo
+                gradient={{
+                  from: "white",
+                  to: "rgba(255, 255, 255, 0.8)",
+                }}
               />
               <span className="text-lg font-semibold bg-linear-to-br tracking-tight from-white via-white/90 to-white/10 bg-clip-text text-transparent">
                 ReviewPicasso
@@ -196,8 +207,8 @@ export default function Home() {
 
         <HeroSection />
         <FeaturesSection />
-        <CTASection />
         <FAQSection />
+        <CTASection />
         <FooterSection />
 
         {/* Scroll to top button */}

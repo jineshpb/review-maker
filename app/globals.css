@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@plugin "tailwind-corner-smoothing";
 
 :root {
   --background: hsl(48 33.3333% 97.0588%);

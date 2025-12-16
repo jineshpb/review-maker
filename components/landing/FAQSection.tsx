@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const faqs = [
   {
@@ -75,7 +76,7 @@ export const FAQSection = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <section className="relative py-44 overflow-hidden">
+      <section className="relative py-44 overflow-hidden  ">
         {/* Background blur */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1054px] h-[1054px] rounded-full bg-primary/5 blur-3xl" />
@@ -90,11 +91,11 @@ export const FAQSection = () => {
               Everything you need to know about creating review screenshots
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
               {faqs.map((faq, index) => (
                 <div
                   key={index}
-                  className="border border-white/10 rounded-lg bg-black/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-white/20"
+                  className="border-b border-white/10   backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-white/20"
                 >
                   <button
                     onClick={() => toggleFAQ(index)}
@@ -130,7 +131,7 @@ export const FAQSection = () => {
             </div>
 
             {/* How-To Section */}
-            <div className="mt-20">
+            <div className="mt-44">
               <h2 className="text-4xl md:text-5xl font-bold text-center mb-4 bg-linear-to-br from-white to-white/10 bg-clip-text text-transparent tracking-tight">
                 How to Create Review Screenshots
               </h2>
@@ -162,17 +163,20 @@ export const FAQSection = () => {
                 ].map((item, index) => (
                   <div
                     key={index}
-                    className="border border-white/10 rounded-lg p-6 bg-black/20 backdrop-blur-sm hover:border-white/20 transition-all duration-300"
+                    className="border border-white/10 rounded-xl p-6 bg-black/20 backdrop-blur-sm hover:border-white/20 transition-all duration-300 flex flex-col justify-between"
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mb-4">
-                      <span className="text-2xl font-bold text-primary">
-                        {item.step}
-                      </span>
+                    <div className="h-full flex flex-col justify-between">
+                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mb-4">
+                        <span className="text-2xl font-bold text-primary">
+                          {item.step}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">
+                        {item.title}
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-white/70 leading-relaxed">
+
+                    <p className="text-white/50 leading-relaxed h-full ">
                       {item.description}
                     </p>
                   </div>
