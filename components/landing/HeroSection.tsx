@@ -55,7 +55,7 @@ export const HeroSection = () => {
             review generator. Use AI to write if you are stuck
           </p>
           <GlassButton asChild className="group">
-            <Link href="/sign-up">
+            <Link href="/dashboard">
               TRY FOR FREE
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>

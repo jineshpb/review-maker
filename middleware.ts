@@ -2,13 +2,13 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Define protected routes that require authentication
 const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/subscription(.*)",
+  "/subscription(.*)", // Subscription page requires authentication
 ]);
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/dashboard(.*)", // Dashboard is public, but shows sidebar only when authenticated
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)", // Webhooks have their own verification

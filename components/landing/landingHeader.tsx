@@ -6,9 +6,7 @@ import { GlassButton } from "../ui/glass-button";
 import { Logo } from "../Logo";
 
 // Navigation Component
-const LandingHeader = async () => {
-  const { userId } = await auth();
-
+const LandingHeader = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-linear-to-b from-black to-black/50 backdrop-blur-sm border-b border-white/10">
       <div className="container mx-auto px-6 py-4">
@@ -26,7 +24,7 @@ const LandingHeader = async () => {
           </Link>
           <div className="flex items-center gap-4">
             <GlassButton asChild>
-              <Link href="/sign-in">Sign In</Link>
+              <Link href="/sign-up">Sign In</Link>
             </GlassButton>
           </div>
         </div>

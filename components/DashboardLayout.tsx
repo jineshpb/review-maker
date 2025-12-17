@@ -22,7 +22,7 @@ export const DashboardLayout = ({
   subscriptionData,
 }: {
   isAuthenticated: boolean;
-  subscriptionData: UserSubscription;
+  subscriptionData: UserSubscription | null;
 }) => {
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -162,14 +162,16 @@ export const DashboardLayout = ({
 
   return (
     <div className="flex h-full">
-      {/* Sidebar */}
-      <DraftsSidebar
-        onSelectDraft={handleSelectDraft}
-        onNewDraft={handleNewDraft}
-        selectedDraftId={selectedDraft?.id || null}
-        subscriptionData={subscriptionData}
-        refreshTrigger={refreshKey}
-      />
+      {/* Sidebar - Only show when authenticated */}
+      {isAuthenticated && subscriptionData && (
+        <DraftsSidebar
+          onSelectDraft={handleSelectDraft}
+          onNewDraft={handleNewDraft}
+          selectedDraftId={selectedDraft?.id || null}
+          subscriptionData={subscriptionData}
+          refreshTrigger={refreshKey}
+        />
+      )}
 
       {/* Main Editor Area */}
       <div className="flex-1 overflow-y-auto">

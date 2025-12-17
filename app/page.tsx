@@ -90,7 +90,7 @@ const CTASection = () => {
             card required.
           </p>
           <GlassButton asChild className="group">
-            <Link href="/sign-up">
+            <Link href="/dashboard">
               START FREE TRIAL
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>

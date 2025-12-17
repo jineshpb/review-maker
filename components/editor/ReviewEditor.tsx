@@ -8,6 +8,7 @@ import { ReviewPreview } from "./ReviewPreview";
 import { ReviewForm } from "./ReviewForm";
 import { Button } from "@/components/ui/button";
 import { Download, Save, Loader2, Brain } from "lucide-react";
+import Link from "next/link";
 import html2canvas from "html2canvas";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import ReviewAi from "./ReviewAi";
 import Header from "../Header";
 import { getPlatformDefaults } from "./platformDefaults";
+import { Logo } from "../Logo";
 
 interface Draft {
   id: string;
@@ -365,7 +367,27 @@ export const ReviewEditor = ({
 
   return (
     <>
-      <Header />
+      {!isAuthenticated ? (
+        <div className="w-full mx-auto flex items-center justify-between gap-2 px-6 py-4 border-b border-black/10 sticky top-0 bg-white/10 backdrop-blur-sm z-50">
+          <div className="flex items-center gap-2">
+            <Logo
+              gradient={{
+                from: "gray",
+                to: "rgba(0, 0, 0, 0.8)",
+              }}
+            />
+            <span className="text-lg font-semibold bg-linear-to-br tracking-tight from-black via-black/90 to-black/70 bg-clip-text text-transparent">
+              ReviewPicasso
+            </span>
+          </div>
+
+          <Button className="" size={"sm"}>
+            <Link href="/sign-up">Sign In</Link>
+          </Button>
+        </div>
+      ) : (
+        <Header />
+      )}
       <div className="w-full mx-auto container px-6">
         <div className="w-full mt-12 ">
           <h2 className="text-sm uppercase text-muted-foreground  font-semibold mb-4">

@@ -10,7 +10,7 @@ export default function SignUpPage() {
           Review Picasso
         </span>
       </div>
-      <SignUp />
+      <SignUp fallbackRedirectUrl="/dashboard" />
     </div>
   );
 }
