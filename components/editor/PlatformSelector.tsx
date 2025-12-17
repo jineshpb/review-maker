@@ -1,57 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-const platforms = [
-  {
-    id: "google",
-    name: "Google Reviews",
-    color: "bg-blue-500",
-    description: "Google Maps review style",
-  },
-  {
-    id: "amazon",
-    name: "Amazon",
-    color: "bg-orange-500",
-    description: "Product review style",
-  },
-  {
-    id: "yelp",
-    name: "Yelp",
-    color: "bg-red-500",
-    description: "Business review style",
-  },
-  {
-    id: "tripadvisor",
-    name: "TripAdvisor",
-    color: "bg-green-500",
-    description: "Travel review style",
-  },
-  {
-    id: "facebook",
-    name: "Facebook",
-    color: "bg-blue-600",
-    description: "Social media review",
-  },
-  {
-    id: "trustpilot",
-    name: "Trustpilot",
-    color: "bg-green-600",
-    description: "Business review platform",
-  },
-  {
-    id: "appstore",
-    name: "App Store",
-    color: "bg-slate-700",
-    description: "iOS app review style",
-  },
-  {
-    id: "awardbadge",
-    name: "Award Badge",
-    color: "bg-gradient-to-r from-yellow-400 to-yellow-600",
-    description: "Customizable award badge",
-  },
-];
+import { platforms } from "@/lib/review-editor/platforms";
 
 interface PlatformSelectorProps {
   selectedPlatform: string | null;

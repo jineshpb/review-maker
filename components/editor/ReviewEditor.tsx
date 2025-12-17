@@ -19,6 +19,7 @@ import ReviewAi from "./ReviewAi";
 import Header from "../Header";
 import { getPlatformDefaults } from "./platformDefaults";
 import { Logo } from "../Logo";
+import { platforms } from "@/lib/review-editor/platforms";
 
 interface Draft {
   id: string;
@@ -44,7 +45,9 @@ export const ReviewEditor = ({
 }: ReviewEditorProps) => {
   const { userId } = useAuth();
   const router = useRouter();
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<
+    (typeof platforms)[number] | null
+  >(null);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -95,10 +98,10 @@ export const ReviewEditor = ({
     try {
       const draftName = generateDraftName(reviewData.reviewText);
       const draftData = {
-        platform: selectedPlatform,
+        platform: selectedPlatform.id,
         reviewData: {
           ...reviewData,
-          platform: selectedPlatform,
+          platform: selectedPlatform.id,
         },
         name: draftName,
       };
@@ -182,7 +185,10 @@ export const ReviewEditor = ({
         ),
       });
       setCurrentDraftId(selectedDraft.id);
-      setSelectedPlatform(selectedDraft.platform);
+      setSelectedPlatform(
+        platforms.find((platform) => platform.id === selectedDraft.platform) ||
+          null
+      );
       setReviewData({
         ...selectedDraft.review_data,
         platform: selectedDraft.platform,
@@ -214,10 +220,10 @@ export const ReviewEditor = ({
   useEffect(() => {
     if (selectedPlatform && !selectedDraft) {
       // Only initialize if no draft is loaded (new draft)
-      const defaults = getPlatformDefaults(selectedPlatform);
+      const defaults = getPlatformDefaults(selectedPlatform.id);
       setReviewData({
         ...defaults,
-        platform: selectedPlatform,
+        platform: selectedPlatform.id,
       });
     }
   }, [selectedPlatform, selectedDraft]);
@@ -240,7 +246,7 @@ export const ReviewEditor = ({
       });
       const link = document.createElement("a");
       link.download = `review-${
-        selectedPlatform || "custom"
+        selectedPlatform?.name || "custom"
       }-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
@@ -277,10 +283,10 @@ export const ReviewEditor = ({
 
       const draftName = generateDraftName(reviewData.reviewText);
       const draftData = {
-        platform: selectedPlatform,
+        platform: selectedPlatform.id,
         reviewData: {
           ...reviewData,
-          platform: selectedPlatform,
+          platform: selectedPlatform.id,
         },
         name: draftName,
       };
@@ -365,6 +371,8 @@ export const ReviewEditor = ({
     setAiMode(!aiMode);
   };
 
+  console.log("selectedPlatform", selectedPlatform);
+
   return (
     <>
       {!isAuthenticated ? (
@@ -394,8 +402,12 @@ export const ReviewEditor = ({
             Choose Platform
           </h2>
           <PlatformSelector
-            selectedPlatform={selectedPlatform}
-            onSelect={setSelectedPlatform}
+            selectedPlatform={selectedPlatform?.id || null}
+            onSelect={(platformId) => {
+              const platform =
+                platforms.find((p) => p.id === platformId) || null;
+              setSelectedPlatform(platform);
+            }}
           />
         </div>
         <div className="flex flex-col lg:flex-row mt-12 w-full">
@@ -407,41 +419,46 @@ export const ReviewEditor = ({
                   <h2 className="text-sm uppercase text-muted-foreground mb-4  font-semibold ">
                     Review Details
                   </h2>
-                  <div className="flex flex-col items-start gap-2 w-full justify-between border rounded-lg p-2">
-                    <div className="flex items-center gap-2 w-full justify-between">
-                      <Label
-                        htmlFor="aiMode"
-                        className="cursor-pointer text-sm flex gap-2 items-center"
-                      >
-                        <Brain className="h-4 w-4 text-muted-foreground" />
-                        AI Fill
-                      </Label>
-                      <Switch
-                        id="aiMode"
-                        checked={aiMode}
-                        onCheckedChange={(checked: boolean) =>
-                          setAiMode(checked)
-                        }
-                      />
-                    </div>
-                    {aiMode && (
-                      <ReviewAi
-                        onToneChange={(values: any) =>
-                          setReviewData({ ...reviewData, tone: values })
-                        }
-                        onClose={() => setAiMode(false)}
-                        onReviewGenerated={onDraftChange}
-                        onDraftRefetch={onDraftRefetch}
-                        platform={selectedPlatform}
-                        draftId={currentDraftId || undefined}
-                      />
-                    )}
-                  </div>
+                  {selectedPlatform.aiFriendly && (
+                    <>
+                      <div className="flex flex-col items-start gap-2 w-full justify-between border rounded-lg p-2">
+                        <div className="flex items-center gap-2 w-full justify-between">
+                          <Label
+                            htmlFor="aiMode"
+                            className="cursor-pointer text-sm flex gap-2 items-center"
+                          >
+                            <Brain className="h-4 w-4 text-muted-foreground" />
+                            AI Fill
+                          </Label>
+                          <Switch
+                            id="aiMode"
+                            checked={aiMode}
+                            onCheckedChange={(checked: boolean) =>
+                              setAiMode(checked)
+                            }
+                          />
+                        </div>
+
+                        {aiMode && (
+                          <ReviewAi
+                            onToneChange={(values: any) =>
+                              setReviewData({ ...reviewData, tone: values })
+                            }
+                            onClose={() => setAiMode(false)}
+                            onReviewGenerated={onDraftChange}
+                            onDraftRefetch={onDraftRefetch}
+                            platform={selectedPlatform?.id}
+                            draftId={currentDraftId || undefined}
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
                   {!aiMode && (
                     <ReviewForm
                       reviewData={reviewData}
                       onChange={setReviewData}
-                      platform={selectedPlatform}
+                      platform={selectedPlatform.id}
                     />
                   )}
                 </div>
@@ -489,8 +506,11 @@ export const ReviewEditor = ({
               <div className="bg-muted/50 relative rounded-lg p-8 flex items-center justify-center min-h-[400px] overflow-hidden">
                 {selectedPlatform ? (
                   <ReviewPreview
-                    platform={selectedPlatform}
-                    reviewData={{ ...reviewData, platform: selectedPlatform }}
+                    platform={selectedPlatform.id}
+                    reviewData={{
+                      ...reviewData,
+                      platform: selectedPlatform.id,
+                    }}
                     draftId={currentDraftId}
                     onReviewGenerated={onDraftChange}
                   />

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { DraftsSidebar } from "./DraftsSidebar";
 import { ReviewEditor } from "./editor/ReviewEditor";
 import { Database } from "@/types/database";
+import { platforms } from "@/lib/review-editor/platforms";
 
 type UserSubscription =
   Database["public"]["Tables"]["user_subscriptions"]["Row"];
@@ -45,9 +46,9 @@ export const DashboardLayout = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          platform: "google", // Default platform
+          platform: platforms[0].id, // Default platform
           reviewData: {
-            platform: "google",
+            platform: platforms[0].id,
             reviewerName: "",
             rating: 5,
             reviewText: "",
