@@ -23,6 +23,8 @@ import type {
   AmazonReviewData,
   TrustpilotReviewData,
   TripAdvisorReviewData,
+  AppStoreReviewData,
+  AwardBadgeData,
 } from "@/types/review";
 
 // Import platform-specific renderers
@@ -30,6 +32,8 @@ import { renderGoogleReview } from "./platforms/google";
 import { renderAmazonReview } from "./platforms/amazon";
 import { renderTrustpilotReview } from "./platforms/trustpilot";
 import { renderTripAdvisorReview } from "./platforms/tripadvisor";
+import { renderAppStoreReview } from "./platforms/appstore";
+import { renderAwardBadge } from "./platforms/awardbadge";
 import { Star } from "lucide-react";
 // Add more platform imports here:
 // import { renderYelpReview } from "./platforms/yelp";
@@ -99,6 +103,12 @@ export const renderReview = (platform: string, reviewData: ReviewData) => {
 
     case "tripadvisor":
       return renderTripAdvisorReview(reviewData as TripAdvisorReviewData);
+
+    case "appstore":
+      return renderAppStoreReview(reviewData as AppStoreReviewData);
+
+    case "awardbadge":
+      return renderAwardBadge(reviewData as AwardBadgeData);
 
     // Add more platforms here:
     // case "yelp":

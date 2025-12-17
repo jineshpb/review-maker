@@ -1,13 +1,9 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Star } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { ReviewData, GoogleReviewData } from "@/types/review";
+import type { ReviewData, AppStoreReviewData } from "@/types/review";
+import { platformFormConfigs } from "./form-configs";
+import { FormFieldRenderer } from "./FormFieldRenderer";
+import { platformDefaults } from "./platformDefaults";
 
 interface ReviewFormProps {
   reviewData: ReviewData;
@@ -15,199 +11,148 @@ interface ReviewFormProps {
   platform: string;
 }
 
+// Helper function to get nested value (e.g., "awardBadge.heading")
+const getNestedValue = (obj: any, path: string): unknown => {
+  const keys = path.split(".");
+  let value = obj;
+  for (const key of keys) {
+    if (value === null || value === undefined) return undefined;
+    value = value[key];
+  }
+  return value;
+};
+
+// Helper function to set nested value
+const setNestedValue = (obj: any, path: string, value: unknown): any => {
+  const keys = path.split(".");
+  const result = { ...obj };
+  let current = result;
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (!current[key] || typeof current[key] !== "object") {
+      current[key] = {};
+    } else {
+      current[key] = { ...current[key] };
+    }
+    current = current[key];
+  }
+
+  current[keys[keys.length - 1]] = value;
+  return result;
+};
+
 export const ReviewForm = ({
   reviewData,
   onChange,
   platform,
 }: ReviewFormProps) => {
-  const updateField = (field: string, value: unknown) => {
-    onChange({ ...reviewData, [field]: value } as ReviewData);
+  const config = platformFormConfigs[platform];
+
+  if (!config) {
+    return (
+      <div className="text-muted-foreground">
+        Form configuration not found for platform: {platform}
+      </div>
+    );
+  }
+
+  const updateField = (fieldId: string, value: unknown) => {
+    if (fieldId.includes(".")) {
+      // Handle nested fields (e.g., "awardBadge.heading")
+      const updated = setNestedValue(reviewData, fieldId, value);
+      onChange(updated as ReviewData);
+    } else {
+      // Handle simple fields
+      onChange({ ...reviewData, [fieldId]: value } as ReviewData);
+    }
+  };
+
+  const getFieldValue = (fieldId: string): unknown => {
+    if (fieldId.includes(".")) {
+      return getNestedValue(reviewData, fieldId);
+    }
+    return (reviewData as any)[fieldId];
+  };
+
+  // Special handling for App Store award badge toggle
+  const handleAwardBadgeToggle = (enabled: boolean) => {
+    if (enabled) {
+      const awardBadgeDefaults = platformDefaults.awardbadge as {
+        heading?: string;
+        content?: string;
+        textColor?: string;
+        laurelWreathColor?: string;
+      };
+      updateField("awardBadge", {
+        heading: awardBadgeDefaults.heading || "",
+        content: awardBadgeDefaults.content || "",
+        textColor: awardBadgeDefaults.textColor || "",
+        laurelWreathColor: awardBadgeDefaults.laurelWreathColor || "",
+      });
+    } else {
+      updateField("awardBadge", undefined);
+    }
   };
 
   return (
     <div className="space-y-6 mt-4 w-full">
-      <div className="space-y-2">
-        <Label htmlFor="reviewerName">Reviewer Name</Label>
-        <Input
-          id="reviewerName"
-          value={reviewData.reviewerName}
-          onChange={(e) => updateField("reviewerName", e.target.value)}
-          placeholder="John Doe"
-        />
-      </div>
+      {config.sections.map((section, sectionIndex) => {
+        // Check if award badge section should be shown
+        if (
+          platform === "appstore" &&
+          section.title === "Award Badge" &&
+          section.fields[0]?.id === "awardBadge.enabled"
+        ) {
+          const awardBadgeEnabled = !!(reviewData as AppStoreReviewData)
+            .awardBadge?.heading;
 
-      {/* Google-specific fields */}
-      {platform === "google" && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="localGuideLevel">
-              Local Guide Level (0-10, 0 = not a local guide)
-            </Label>
-            <Input
-              id="localGuideLevel"
-              type="number"
-              min={0}
-              max={10}
-              value={(reviewData as GoogleReviewData).localGuideLevel || 0}
-              onChange={(e) =>
-                updateField("localGuideLevel", parseInt(e.target.value) || 0)
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="numberOfReviews">Number of Reviews</Label>
-            <Input
-              id="numberOfReviews"
-              type="number"
-              min={0}
-              value={(reviewData as GoogleReviewData).numberOfReviews || 0}
-              onChange={(e) =>
-                updateField("numberOfReviews", parseInt(e.target.value) || 0)
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="numberOfPhotos">Number of Photos</Label>
-            <Input
-              id="numberOfPhotos"
-              type="number"
-              min={0}
-              value={(reviewData as GoogleReviewData).numberOfPhotos || 0}
-              onChange={(e) =>
-                updateField("numberOfPhotos", parseInt(e.target.value) || 0)
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="isNew" className="cursor-pointer">
-              Show "NEW" Badge
-            </Label>
-            <Switch
-              id="isNew"
-              checked={(reviewData as GoogleReviewData).isNew || false}
-              onCheckedChange={(checked) => updateField("isNew", checked)}
-            />
-          </div>
-        </>
-      )}
+          return (
+            <div key={sectionIndex} className="space-y-4 border-t pt-4">
+              {section.title && (
+                <h3 className="font-semibold text-lg">{section.title}</h3>
+              )}
+              {/* Award Badge Toggle */}
+              <FormFieldRenderer
+                field={section.fields[0]}
+                value={awardBadgeEnabled}
+                onChange={(value) => handleAwardBadgeToggle(value as boolean)}
+                reviewData={reviewData}
+              />
+              {/* Award Badge Fields (only show if enabled) */}
+              {awardBadgeEnabled &&
+                section.fields
+                  .slice(1)
+                  .map((field) => (
+                    <FormFieldRenderer
+                      key={field.id}
+                      field={field}
+                      value={getFieldValue(field.id)}
+                      onChange={(value) => updateField(field.id, value)}
+                      reviewData={reviewData}
+                    />
+                  ))}
+            </div>
+          );
+        }
 
-      {(platform === "amazon" ||
-        platform === "trustpilot" ||
-        platform === "tripadvisor") && (
-        <div className="space-y-2">
-          <Label htmlFor="reviewTitle">Review Title</Label>
-          <Input
-            id="reviewTitle"
-            value={(reviewData as any).reviewTitle || ""}
-            onChange={(e) => updateField("reviewTitle", e.target.value)}
-            placeholder="Great product!"
-          />
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="rating">Rating: {reviewData.rating} stars</Label>
-        <div className="flex items-center gap-2">
-          <Slider
-            id="rating"
-            min={1}
-            max={5}
-            step={1}
-            value={[reviewData.rating]}
-            onValueChange={([value]) => updateField("rating", value)}
-            className="flex-1"
-          />
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={cn(
-                  "h-5 w-5",
-                  star <= reviewData.rating
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-muted-foreground"
-                )}
+        return (
+          <div key={sectionIndex} className="space-y-4">
+            {section.title && (
+              <h3 className="font-semibold text-lg">{section.title}</h3>
+            )}
+            {section.fields.map((field) => (
+              <FormFieldRenderer
+                key={field.id}
+                field={field}
+                value={getFieldValue(field.id)}
+                onChange={(value) => updateField(field.id, value)}
+                reviewData={reviewData}
               />
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="reviewText">Review Text</Label>
-        <Textarea
-          id="reviewText"
-          value={reviewData.reviewText}
-          onChange={(e) => updateField("reviewText", e.target.value)}
-          placeholder="Write your review here..."
-          rows={6}
-        />
-        <div className="text-xs text-muted-foreground text-right">
-          {reviewData.reviewText.length} characters
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="date">Date</Label>
-        <Input
-          id="date"
-          type="date"
-          value={reviewData.date}
-          onChange={(e) => updateField("date", e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="profilePicture">Profile Picture URL (optional)</Label>
-        <Input
-          id="profilePicture"
-          value={reviewData.profilePictureUrl}
-          onChange={(e) => updateField("profilePictureUrl", e.target.value)}
-          placeholder="https://example.com/avatar.jpg"
-        />
-      </div>
-
-      {(platform === "amazon" ||
-        platform === "facebook" ||
-        platform === "trustpilot") && (
-        <div className="flex items-center justify-between">
-          <Label htmlFor="verified" className="cursor-pointer">
-            Verified Purchase/Badge
-          </Label>
-          <Switch
-            id="verified"
-            checked={(reviewData as any).verified || false}
-            onCheckedChange={(checked) => updateField("verified", checked)}
-          />
-        </div>
-      )}
-
-      {(platform === "amazon" || platform === "tripadvisor") && (
-        <div className="space-y-2">
-          <Label htmlFor="helpfulVotes">Helpful Votes</Label>
-          <Input
-            id="helpfulVotes"
-            type="number"
-            min={0}
-            value={(reviewData as any).helpfulVotes || 0}
-            onChange={(e) =>
-              updateField("helpfulVotes", parseInt(e.target.value) || 0)
-            }
-          />
-        </div>
-      )}
-
-      {platform === "tripadvisor" && (
-        <div className="space-y-2">
-          <Label htmlFor="contributionLevel">Contribution Level</Label>
-          <Input
-            id="contributionLevel"
-            value={(reviewData as any).contributionLevel || ""}
-            onChange={(e) => updateField("contributionLevel", e.target.value)}
-            placeholder="e.g., 18 contributions or Level 6 Contributor"
-          />
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 };

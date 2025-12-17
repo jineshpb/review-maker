@@ -16,6 +16,7 @@ import { GoogleReviewData } from "@/types/review";
 import { Switch } from "@/components/ui/switch";
 import ReviewAi from "./ReviewAi";
 import Header from "../Header";
+import { getPlatformDefaults } from "./platformDefaults";
 
 interface Draft {
   id: string;
@@ -206,6 +207,18 @@ export const ReviewEditor = ({
       });
     }
   }, [selectedDraft]);
+
+  // Initialize review data when platform is selected
+  useEffect(() => {
+    if (selectedPlatform && !selectedDraft) {
+      // Only initialize if no draft is loaded (new draft)
+      const defaults = getPlatformDefaults(selectedPlatform);
+      setReviewData({
+        ...defaults,
+        platform: selectedPlatform,
+      });
+    }
+  }, [selectedPlatform, selectedDraft]);
 
   const handleDownload = async () => {
     const previewElement = document.getElementById("review-preview");

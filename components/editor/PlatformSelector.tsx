@@ -39,6 +39,18 @@ const platforms = [
     color: "bg-green-600",
     description: "Business review platform",
   },
+  {
+    id: "appstore",
+    name: "App Store",
+    color: "bg-slate-700",
+    description: "iOS app review style",
+  },
+  {
+    id: "awardbadge",
+    name: "Award Badge",
+    color: "bg-gradient-to-r from-yellow-400 to-yellow-600",
+    description: "Customizable award badge",
+  },
 ];
 
 interface PlatformSelectorProps {
@@ -64,7 +76,7 @@ export const PlatformSelector = ({
               : "border-border"
           )}
         >
-          <div className="flex items-start justify-start gap-2">
+          <div className="flex items-center justify-center gap-2">
             <div
               className={cn(
                 "w-8 h-8 rounded-full",

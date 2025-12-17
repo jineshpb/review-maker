@@ -73,8 +73,15 @@ export interface AirbnbReviewData extends BaseReviewData {
 // App Store Reviews specific data
 export interface AppStoreReviewData extends BaseReviewData {
   platform: "appstore";
+  reviewTitle?: string; // Bold headline/title at the top
   appVersion?: string;
   country?: string;
+  awardBadge?: {
+    heading: string; // Award heading text (e.g., "App Store Awards 2024 Winner")
+    content?: string; // Optional content text below heading
+    textColor?: string; // Tailwind text color class or hex color (e.g., "text-white" or "#ffffff")
+    laurelWreathColor?: string; // Hex color for laurel wreaths (e.g., "#000000" or "#ffffff")
+  };
 }
 
 // Play Store Reviews specific data
@@ -82,6 +89,20 @@ export interface PlayStoreReviewData extends BaseReviewData {
   platform: "playstore";
   appVersion?: string;
   device?: string;
+}
+
+// Award Badge specific data (not a review, standalone badge)
+export interface AwardBadgeData {
+  platform: "awardbadge";
+  heading: string; // Award heading text (e.g., "App Store Awards 2024 Winner")
+  content?: string; // Optional content text below heading
+  textColor?: string; // Tailwind text color class or hex color (e.g., "text-white" or "#ffffff")
+  laurelWreathColor?: string; // Hex color for laurel wreaths (e.g., "#000000" or "#ffffff")
+  reviewerName?: string;
+  rating?: number;
+  reviewText?: string;
+  date?: string;
+  profilePictureUrl?: string;
 }
 
 // Union type for all platform review data
@@ -95,7 +116,8 @@ export type ReviewData =
   | FiverrReviewData
   | AirbnbReviewData
   | AppStoreReviewData
-  | PlayStoreReviewData;
+  | PlayStoreReviewData
+  | AwardBadgeData;
 
 // Type guard functions
 export const isGoogleReview = (data: ReviewData): data is GoogleReviewData =>
