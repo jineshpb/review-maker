@@ -61,7 +61,10 @@ export const renderTripAdvisorReview = (data: TripAdvisorReviewData) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[600px] w-full min-w-[600px]">
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[600px] w-full min-w-[600px]"
+      id="review-card"
+    >
       {/* Header Section: Profile Picture, Name, and Rating */}
       <div className="flex items-center gap-3 mb-6 ">
         {/* Profile Picture */}

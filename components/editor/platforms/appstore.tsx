@@ -46,7 +46,10 @@ export const renderAppStoreReview = (data: AppStoreReviewData) => {
   };
 
   return (
-    <div className="bg-white rounded-4xl shadow-sm border border-gray-200 p-8 max-w-[600px] w-full">
+    <div
+      className="bg-white rounded-4xl shadow-sm border border-gray-200 p-8 max-w-[600px] w-full"
+      id="review-card"
+    >
       {/* Award Badge */}
       {data.awardBadge &&
         (() => {

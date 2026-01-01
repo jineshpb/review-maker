@@ -19,7 +19,10 @@ export const renderGoogleReview = (data: GoogleReviewData) => {
   const hasLocalGuide = localGuideLevel > 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full">
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full"
+      id="review-card"
+    >
       {/* Header Section */}
       <div className="flex items-start gap-3 mb-3">
         {/* Profile Picture with Local Guide Badge */}

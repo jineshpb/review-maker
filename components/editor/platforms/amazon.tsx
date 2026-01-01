@@ -32,7 +32,10 @@ export const renderAmazonReview = (data: AmazonReviewData) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[600px] w-full">
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[600px] w-full"
+      id="review-card"
+    >
       {/* Header Section: Profile Icon and Name */}
       <div className="flex items-center gap-3 mb-3 ">
         {/* Profile Icon/Avatar */}

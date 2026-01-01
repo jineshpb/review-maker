@@ -19,7 +19,7 @@ export const PlatformSelector = ({
           key={platform.id}
           onClick={() => onSelect(platform.id)}
           className={cn(
-            "p-2 rounded-lg border transition-all text-left items-start justify-start flex cursor-pointer",
+            "p-2 border rounded-lg transition-all text-left items-start justify-start flex cursor-pointer",
             "hover:border-primary/50 hover:shadow-md",
             selectedPlatform === platform.id
               ? "border-primary/50 bg-primary/5"
