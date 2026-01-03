@@ -12,13 +12,13 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 
-const Header = () => {
+const Header = ({ HeaderType }: { HeaderType: "editor" | "subscription" }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/10 backdrop-blur-sm">
       <div className="flex items-center justify-between gap-2 px-6 py-4">
         <div className="flex items-center gap-2">
           <span className="text-md font-medium tracking-tight text-primary">
-            Editor
+            {HeaderType === "editor" ? "Editor" : "Subscription"}
           </span>
         </div>
 

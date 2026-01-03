@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        // Extract billing interval from subscription notes
+        const billingInterval = subscription.notes?.interval || null;
+
         // Update user subscription in Supabase
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: clerkUserId,
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
           current_period_end: new Date(
             subscription.current_end * 1000
           ).toISOString(),
+          billing_interval: billingInterval, // Save billing interval
           ai_fills_available: 999999, // Premium/Enterprise get effectively unlimited
         });
 
@@ -129,6 +133,7 @@ export async function POST(request: NextRequest) {
         }
 
         const tier = subscription.notes?.tier || "premium";
+        const billingInterval = subscription.notes?.interval || null;
 
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
@@ -137,6 +142,7 @@ export async function POST(request: NextRequest) {
           current_period_end: new Date(
             subscription.current_end * 1000
           ).toISOString(),
+          billing_interval: billingInterval, // Save billing interval
         });
 
         console.log(`✅ Subscription updated for user ${existingSub.user_id}`);

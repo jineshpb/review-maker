@@ -48,7 +48,10 @@ const generateInitials = (name: string) => {
 
 export const renderTrustpilotReview = (data: TrustpilotReviewData) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-300 p-4 max-w-[600px] w-full" id="review-card">
+    <div
+      className="bg-white rounded-xl border border-gray-300 p-4 max-w-[600px] w-full"
+      id="review-card"
+    >
       {/* Header Section: Profile Icon and Name */}
       <div className="flex items-center gap-3 mb-4">
         {/* Profile Icon/Avatar */}

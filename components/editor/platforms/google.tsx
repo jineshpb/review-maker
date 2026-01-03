@@ -20,7 +20,7 @@ export const renderGoogleReview = (data: GoogleReviewData) => {
 
   return (
     <div
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full"
+      className="bg-white overflow-hidden rounded-lg shadow-sm border border-gray-200 p-4 max-w-[500px] w-full"
       id="review-card"
     >
       {/* Header Section */}
@@ -40,7 +40,7 @@ export const renderGoogleReview = (data: GoogleReviewData) => {
               }}
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
               {data.reviewerName[0]?.toUpperCase() || "U"}
             </div>
           )}

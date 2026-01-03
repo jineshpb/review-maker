@@ -13,7 +13,10 @@ import { platformDefaults } from "../platformDefaults";
 export const renderAwardBadge = (data: AwardBadgeData) => {
   const defaults = platformDefaults.awardbadge as AwardBadgeData;
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-[600px] w-full flex items-center justify-center">
+    <div
+      className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-[600px] w-full flex items-center justify-center"
+      id="review-card"
+    >
       <AwardBadge
         heading={data.heading || defaults.heading || ""}
         content={data.content || defaults.content || ""}

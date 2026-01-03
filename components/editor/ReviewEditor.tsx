@@ -394,7 +394,7 @@ export const ReviewEditor = ({
           </Button>
         </div>
       ) : (
-        <Header />
+        <Header HeaderType="editor" />
       )}
       <div className="w-full mx-auto container px-6">
         <div className="w-full mt-12 ">
