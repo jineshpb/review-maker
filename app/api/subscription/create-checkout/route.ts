@@ -354,12 +354,14 @@ export async function POST(request: NextRequest) {
       // Continue anyway - subscription is created, user can access via Razorpay dashboard
     }
 
-    // Save subscription ID and interval to database (will be updated via webhook)
+    // Save subscription ID, tier, and interval to database (will be updated via webhook)
     await (supabase.from("user_subscriptions") as any).upsert({
       user_id: userId,
       razorpay_subscription_id: subscriptionData.id,
       razorpay_customer_id: customerId,
+      tier, // Save tier
       billing_interval: interval, // Save billing interval
+      status: "pending", // Initial status until webhook confirms activation
     });
 
     // Validate checkout URL before returning

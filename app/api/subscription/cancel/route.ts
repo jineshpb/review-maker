@@ -60,22 +60,57 @@ export async function POST(request: NextRequest) {
 
     // Cancel subscription in Razorpay
     try {
-      await razorpay.subscriptions.cancel(razorpaySubscriptionId, {
-        cancel_at_cycle_end: true, // Cancel at end of billing period
-      });
+      // Use direct API call since SDK signature may vary
+      // Cancel at end of billing period (cancel_at_cycle_end: true)
+      const cancelResponse = await fetch(
+        `https://api.razorpay.com/v1/subscriptions/${razorpaySubscriptionId}/cancel`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+            ).toString("base64")}`,
+          },
+          body: JSON.stringify({
+            cancel_at_cycle_end: true, // Cancel at end of billing period
+          }),
+        }
+      );
 
-      // Update subscription status in database
+      if (!cancelResponse.ok) {
+        const errorData = await cancelResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.error?.description || "Failed to cancel subscription"
+        );
+      }
+
+      // IMPORTANT: Set status to "cancelled" but keep tier as "premium" until period ends
+      // When cancel_at_cycle_end is true, Razorpay keeps subscription as "active"
+      // until current_period_end, then it becomes "cancelled"
+      // The user has paid until current_period_end, so they should keep premium access
+      // We mark status as "cancelled" to indicate cancellation is requested
+      // But tier stays "premium" until current_period_end passes
+      // The webhook (subscription.cancelled) will downgrade tier to "free" when period ends
       await (supabase.from("user_subscriptions") as any)
         .update({
-          status: "cancelled",
+          status: "cancelled", // Mark as cancelled (cancellation requested)
+          // Keep tier as "premium" - user still has premium access until period end
+          // Access checking logic should verify: tier === "premium" AND (status === "active" OR (status === "cancelled" AND current_period_end > now))
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", userId);
 
+      // Get current_period_end for the response message
+      const currentPeriodEnd = (subscription as any).current_period_end;
+      const periodEndDate = currentPeriodEnd
+        ? new Date(currentPeriodEnd).toLocaleDateString()
+        : "the end of your billing period";
+
       return NextResponse.json({
         success: true,
-        message:
-          "Subscription cancelled successfully. You'll continue to have access until the end of your billing period.",
+        message: `Subscription cancelled successfully. You'll continue to have premium access until ${periodEndDate}.`,
+        current_period_end: currentPeriodEnd,
       });
     } catch (razorpayError: any) {
       console.error("Razorpay cancel error:", razorpayError);
@@ -108,4 +143,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

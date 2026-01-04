@@ -12,9 +12,31 @@ export default function SubscriptionSuccessPage() {
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
-    // Check subscription status
+    // Check subscription status and sync from Razorpay if needed
     const checkSubscription = async () => {
       try {
+        // Get subscription ID from URL params
+        const params = new URLSearchParams(window.location.search);
+        const subscriptionId = params.get("subscription_id");
+
+        // If we have subscription ID, sync from Razorpay first
+        if (subscriptionId) {
+          try {
+            await fetch("/api/subscription/sync", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ subscriptionId }),
+            });
+            console.log("✅ Subscription synced from Razorpay");
+          } catch (syncError) {
+            console.warn("⚠️ Failed to sync subscription:", syncError);
+            // Continue anyway - status endpoint will also try to sync
+          }
+        }
+
+        // Then fetch updated status
         const response = await fetch("/api/subscription/status");
         const data = await response.json();
 

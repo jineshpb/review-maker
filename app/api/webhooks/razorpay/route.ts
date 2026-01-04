@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
       case "subscription.activated": {
         const subscription = event.payload.subscription.entity;
         const clerkUserId = subscription.notes?.clerk_user_id;
-        const tier = subscription.notes?.tier as "premium" | "enterprise";
+        // Extract tier from notes, fallback to "premium" if not found
+        const tier = (subscription.notes?.tier || "premium") as
+          | "premium"
+          | "enterprise";
 
         if (!clerkUserId) {
           console.error("No clerk_user_id in subscription notes");
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
         // Update user subscription in Supabase
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: clerkUserId,
-          tier,
+          tier, // Ensure tier is always saved
           razorpay_customer_id: subscription.customer_id,
           razorpay_subscription_id: subscription.id,
           status: subscription.status === "active" ? "active" : "cancelled",
@@ -76,7 +79,9 @@ export async function POST(request: NextRequest) {
           ai_fills_available: 999999, // Premium/Enterprise get effectively unlimited
         });
 
-        console.log(`✅ Subscription activated for user ${clerkUserId}`);
+        console.log(
+          `✅ Subscription activated for user ${clerkUserId} with tier ${tier}`
+        );
         break;
       }
 
@@ -102,13 +107,21 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Update period end
+        // Extract tier and billing interval from subscription notes, with fallbacks
+        const tier = (subscription.notes?.tier || "premium") as
+          | "premium"
+          | "enterprise";
+        const billingInterval = subscription.notes?.interval || null;
+
+        // Update period end, tier, and billing interval
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
+          tier, // Update tier from subscription notes
           status: "active",
           current_period_end: new Date(
             (subscription.current_end || 0) * 1000
           ).toISOString(),
+          billing_interval: billingInterval, // Update billing interval
         });
 
         console.log(`✅ Payment succeeded for user ${existingSub.user_id}`);
@@ -132,12 +145,15 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        const tier = subscription.notes?.tier || "premium";
+        // Extract tier and billing interval from subscription notes, with fallbacks
+        const tier = (subscription.notes?.tier || "premium") as
+          | "premium"
+          | "enterprise";
         const billingInterval = subscription.notes?.interval || null;
 
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
-          tier,
+          tier, // Ensure tier is always updated
           status: subscription.status === "active" ? "active" : "cancelled",
           current_period_end: new Date(
             subscription.current_end * 1000

@@ -99,7 +99,7 @@ export const DashboardLayout = ({
 
   const handleDraftRefetch = async (draftId: string) => {
     try {
-      console.log("Refetching draft:", draftId);
+      // console.log("Refetching draft:", draftId);
       // Use cache busting to ensure we get fresh data
       const response = await fetch(`/api/drafts/${draftId}?t=${Date.now()}`);
       if (response.ok) {

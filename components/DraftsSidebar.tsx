@@ -9,6 +9,7 @@ import { getUserSubscription } from "@/lib/supabase/subscriptions";
 import { Database } from "@/types/database";
 import Image from "next/image";
 import { Logo } from "./Logo";
+import { IoMdClose } from "react-icons/io";
 
 interface Draft {
   id: string;
@@ -46,6 +47,8 @@ export const DraftsSidebar = ({
   } | null>(null);
 
   const { tier } = subscriptionData;
+
+  console.log("subscriptionData", subscriptionData);
 
   const fetchDrafts = useCallback(
     async (showLoading = true) => {
@@ -359,10 +362,22 @@ export const DraftsSidebar = ({
         )}
       </div>
       <div className="p-2 flex gap-2  items-center justify-between rounded-lg bg-linear-to-r from-primary/10 to-primary/20 m-2">
-        <div className="text-sm text-muted-foreground flex gap-1 ml-2 font-medium">
-          <p>{tier.charAt(0).toUpperCase() + tier.slice(1)}</p>
-          <p>Plan</p>
-        </div>
+        {subscriptionData.status === "cancelled" && tier === "premium" ? (
+          <div className="text-xs text-amber-700 flex items-center gap-1">
+            <span className="font-medium capitalize">
+              Access until{" "}
+              {new Date(
+                subscriptionData.current_period_end || ""
+              ).toLocaleDateString()}
+            </span>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground flex gap-1 ml-2 font-medium">
+            <p>{tier.charAt(0).toUpperCase() + tier.slice(1)}</p>
+            <p>Plan</p>
+          </div>
+        )}
+
         <Button
           variant="outline"
           size="sm"

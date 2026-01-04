@@ -76,13 +76,43 @@ export async function getUserSubscription(
 
 /**
  * Get user's tier (defaults to "free" if no subscription)
+ *
+ * IMPORTANT: If subscription is cancelled but current_period_end hasn't passed,
+ * user still has access to their paid tier until the period ends.
  */
 export async function getUserTier(
   request?: import("next/server").NextRequest
 ): Promise<SubscriptionTier> {
   const { data } = await getUserSubscription(request);
-  // Type assertion needed until Supabase types are regenerated from actual database
-  return ((data as any)?.tier as SubscriptionTier) || "free";
+
+  if (!data) return "free";
+
+  const subscription = data as any;
+  const tier = subscription.tier as SubscriptionTier;
+  const status = subscription.status;
+  const currentPeriodEnd = subscription.current_period_end;
+
+  // If subscription is cancelled but period hasn't ended, user still has access
+  if (status === "cancelled" && currentPeriodEnd) {
+    const periodEndDate = new Date(currentPeriodEnd);
+    const now = new Date();
+
+    // If period hasn't ended yet, user still has access to their tier
+    if (periodEndDate > now) {
+      return tier; // Return their paid tier (premium/enterprise)
+    }
+
+    // Period has ended, downgrade to free
+    return "free";
+  }
+
+  // For active subscriptions, return their tier
+  if (status === "active") {
+    return tier;
+  }
+
+  // Default to free for any other status
+  return "free";
 }
 
 /**
