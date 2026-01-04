@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
 
     if (existingSubscription) {
       const sub = existingSubscription as any;
-      // Check if user already has premium/enterprise subscription
+      // Check if user already has an ACTIVE premium/enterprise subscription
+      // IMPORTANT: Cancelled subscriptions are allowed - we'll create a NEW subscription
+      // Razorpay doesn't support reactivating cancelled subscriptions
       if (
         sub.tier !== "free" &&
         sub.status === "active" &&
@@ -70,8 +72,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      // If user has a cancelled subscription, log it but allow creating new subscription
+      if (
+        sub.tier !== "free" &&
+        sub.status === "cancelled" &&
+        sub.razorpay_subscription_id
+      ) {
+        console.log(
+          `ℹ️ User ${userId} has cancelled ${sub.tier} subscription. Creating new subscription to reactivate.`
+        );
+        // We'll create a new subscription - the old cancelled one will be replaced
+      }
     }
 
+    // Reuse customer ID if available (even from cancelled subscription)
     let customerId = (existingSubscription as any)?.razorpay_customer_id;
 
     // Get user email from Supabase
@@ -355,9 +370,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Save subscription ID, tier, and interval to database (will be updated via webhook)
+    // IMPORTANT: If user had a cancelled subscription, this will replace it with the new one
+    // Razorpay best practice: Create NEW subscription instead of reactivating cancelled ones
+    // The old cancelled subscription ID is overwritten with the new subscription ID
     await (supabase.from("user_subscriptions") as any).upsert({
       user_id: userId,
-      razorpay_subscription_id: subscriptionData.id,
+      razorpay_subscription_id: subscriptionData.id, // New subscription ID replaces old cancelled one
       razorpay_customer_id: customerId,
       tier, // Save tier
       billing_interval: interval, // Save billing interval
