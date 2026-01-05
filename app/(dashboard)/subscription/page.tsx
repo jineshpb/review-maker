@@ -231,13 +231,59 @@ export default function SubscriptionPage() {
       try {
         const response = await fetch("/api/subscription/status");
         const data = await response.json();
+        console.log("SubData", data);
+
         if (response.ok) {
-          if (data.subscription) {
+          // Use entitlement as source of truth (not Razorpay subscription)
+          // Entitlement is always present (initialized as FREE if missing)
+          if (data.entitlement) {
+            // Determine status based on entitlement tier and validity
+            let status: "active" | "free" | "cancelled" | "expired" = "free";
+
+            if (data.entitlement.tier === "free") {
+              status = "active"; // Free tier is always active
+            } else if (
+              data.entitlement.tier === "premium" ||
+              data.entitlement.tier === "enterprise"
+            ) {
+              // Premium/Enterprise: Check if valid_until is in the future
+              if (data.entitlement.hasActivePremium) {
+                status = "active";
+              } else if (data.entitlement.validUntil) {
+                // Has validUntil but it's expired
+                status = "expired";
+              } else {
+                status = "cancelled";
+              }
+            }
+
+            // Build subscription object from entitlement
+            setCurrentSubscription({
+              tier: data.entitlement.tier,
+              status: status,
+              current_period_end: data.entitlement.validUntil,
+              billing_interval: data.subscription?.billing_interval || null,
+              razorpay_subscription_id:
+                data.subscription?.razorpay_subscription_id || null,
+            });
+          } else if (data.subscription) {
+            // Fallback to subscription if entitlement not available (shouldn't happen)
             setCurrentSubscription(data.subscription);
-            // Get credit balance from subscription
-            setCreditBalance(data.subscription.credits_balance ?? 0);
           } else {
-            // User exists but no subscription - default to 0 credits
+            // No entitlement or subscription - default to free tier
+            setCurrentSubscription({
+              tier: "free",
+              status: "active",
+              current_period_end: null,
+              billing_interval: null,
+              razorpay_subscription_id: null,
+            });
+          }
+
+          // Get credit balance from usage limits (not subscription)
+          if (data.usageLimits) {
+            setCreditBalance(data.usageLimits.aiCreditsRemaining ?? 0);
+          } else {
             setCreditBalance(0);
           }
         }
@@ -327,7 +373,6 @@ export default function SubscriptionPage() {
                   monthly={plan.monthly}
                   yearly={plan.yearly}
                   currentSubscription={currentSubscription}
-                  subscriptionLoading={subscriptionLoading}
                   subscriptionStatus={
                     currentSubscription?.status as
                       | "active"

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { razorpay } from "@/lib/razorpay/config";
 import { createServerClient } from "@/lib/supabase/server";
+import {
+  initializePremiumUsageLimits,
+  refillAICredits,
+} from "@/lib/entitlements/usage";
 import crypto from "crypto";
 
 /**
@@ -8,6 +12,7 @@ import crypto from "crypto";
  * Handle Razorpay webhook events
  *
  * Events handled:
+ * - subscription.authenticated: Customer authorized subscription (first payment)
  * - subscription.activated: Activate subscription
  * - subscription.charged: Payment successful
  * - subscription.updated: Update subscription
@@ -49,6 +54,7 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.event) {
+      case "subscription.authenticated":
       case "subscription.activated": {
         const subscription = event.payload.subscription.entity;
         const clerkUserId = subscription.notes?.clerk_user_id;
@@ -64,23 +70,116 @@ export async function POST(request: NextRequest) {
 
         // Extract billing interval from subscription notes
         const billingInterval = subscription.notes?.interval || null;
+        const currentPeriodEnd = new Date(
+          subscription.current_end * 1000
+        ).toISOString();
+        const currentPeriodStart = subscription.current_start
+          ? new Date(subscription.current_start * 1000).toISOString()
+          : new Date().toISOString();
 
-        // Update user subscription in Supabase
+        // Map Razorpay status to our status
+        // "authenticated" means customer authorized, should be treated as "active"
+        // "active" means subscription is active and charging
+        // "completed" means all billing cycles finished (shouldn't happen with recurring subscriptions)
+        const razorpayStatus = subscription.status;
+        let ourStatus: "active" | "cancelled" | "pending" = "pending";
+
+        if (razorpayStatus === "active" || razorpayStatus === "authenticated") {
+          ourStatus = "active";
+        } else if (
+          razorpayStatus === "cancelled" ||
+          razorpayStatus === "paused" ||
+          razorpayStatus === "halted" ||
+          razorpayStatus === "completed" // Completed = all cycles done, treat as cancelled
+        ) {
+          ourStatus = "cancelled";
+        }
+
+        // Update user_subscriptions (Razorpay tracking)
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: clerkUserId,
-          tier, // Ensure tier is always saved
+          tier,
           razorpay_customer_id: subscription.customer_id,
           razorpay_subscription_id: subscription.id,
-          status: subscription.status === "active" ? "active" : "cancelled",
-          current_period_end: new Date(
-            subscription.current_end * 1000
-          ).toISOString(),
-          billing_interval: billingInterval, // Save billing interval
-          ai_fills_available: 999999, // Premium/Enterprise get effectively unlimited
+          status: ourStatus,
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
+          billing_interval: billingInterval,
+          ai_fills_available: 999999, // Keep for backward compatibility
         });
 
+        // Update entitlements (SOURCE OF TRUTH for access)
+        // Check if user already has an entitlement with valid_until in the future
+        let existingEntitlement = null;
+        try {
+          const { data, error } = await (supabase.from("entitlements") as any)
+            .select("valid_until")
+            .eq("user_id", clerkUserId)
+            .single();
+
+          if (error && error.code !== "PGRST116") {
+            // PGRST116 = no rows found, which is fine
+            console.error(
+              `Error fetching existing entitlement for user ${clerkUserId}:`,
+              error
+            );
+          } else if (data) {
+            existingEntitlement = data;
+          }
+        } catch (err) {
+          console.error(
+            `Exception fetching existing entitlement for user ${clerkUserId}:`,
+            err
+          );
+        }
+
+        const existingValidUntil = existingEntitlement?.valid_until
+          ? new Date(existingEntitlement.valid_until)
+          : null;
+        const newValidUntil = new Date(currentPeriodEnd);
+
+        // Use max of existing and new period end (never lose days on resubscription)
+        const finalValidUntil =
+          existingValidUntil && existingValidUntil > newValidUntil
+            ? existingValidUntil
+            : newValidUntil;
+
+        // Upsert entitlement
+        const { error: entitlementError } = await (
+          supabase.from("entitlements") as any
+        ).upsert({
+          user_id: clerkUserId,
+          tier: tier.toUpperCase() as "PREMIUM" | "ENTERPRISE",
+          valid_from: currentPeriodStart,
+          valid_until: finalValidUntil.toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (entitlementError) {
+          console.error(
+            `❌ Failed to update entitlements for user ${clerkUserId}:`,
+            entitlementError
+          );
+          // Don't break - continue to initialize usage limits
+        } else {
+          console.log(
+            `✅ Entitlements updated for user ${clerkUserId} with tier ${tier.toUpperCase()}, valid until ${finalValidUntil.toISOString()}`
+          );
+        }
+
+        // Initialize usage limits for premium (2000 credits/month)
+        try {
+          await initializePremiumUsageLimits(clerkUserId, 2000);
+          console.log(`✅ Usage limits initialized for user ${clerkUserId}`);
+        } catch (usageError) {
+          console.error(
+            `❌ Failed to initialize usage limits for user ${clerkUserId}:`,
+            usageError
+          );
+        }
+
         console.log(
-          `✅ Subscription activated for user ${clerkUserId} with tier ${tier}`
+          `✅ Subscription activated for user ${clerkUserId} with tier ${tier}, valid until ${finalValidUntil.toISOString()}`
         );
         break;
       }
@@ -112,19 +211,83 @@ export async function POST(request: NextRequest) {
           | "premium"
           | "enterprise";
         const billingInterval = subscription.notes?.interval || null;
+        const currentPeriodEnd = subscription.current_end
+          ? new Date(subscription.current_end * 1000).toISOString()
+          : null;
 
-        // Update period end, tier, and billing interval
+        // Update user_subscriptions (Razorpay tracking)
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
-          tier, // Update tier from subscription notes
+          tier,
           status: "active",
-          current_period_end: new Date(
-            (subscription.current_end || 0) * 1000
-          ).toISOString(),
-          billing_interval: billingInterval, // Update billing interval
+          current_period_end: currentPeriodEnd,
+          billing_interval: billingInterval,
         });
 
-        console.log(`✅ Payment succeeded for user ${existingSub.user_id}`);
+        // Update entitlements valid_until (extend access)
+        if (currentPeriodEnd) {
+          let existingEntitlement = null;
+          try {
+            const { data, error } = await (supabase.from("entitlements") as any)
+              .select("valid_until")
+              .eq("user_id", existingSub.user_id)
+              .single();
+
+            if (error && error.code !== "PGRST116") {
+              console.error(
+                `Error fetching existing entitlement for user ${existingSub.user_id}:`,
+                error
+              );
+            } else if (data) {
+              existingEntitlement = data;
+            }
+          } catch (err) {
+            console.error(
+              `Exception fetching existing entitlement for user ${existingSub.user_id}:`,
+              err
+            );
+          }
+
+          const existingValidUntil = existingEntitlement?.valid_until
+            ? new Date(existingEntitlement.valid_until)
+            : null;
+          const newValidUntil = new Date(currentPeriodEnd);
+
+          // Use max of existing and new period end
+          const finalValidUntil =
+            existingValidUntil && existingValidUntil > newValidUntil
+              ? existingValidUntil
+              : newValidUntil;
+
+          const { error: entitlementError } = await (
+            supabase.from("entitlements") as any
+          ).upsert({
+            user_id: existingSub.user_id,
+            tier: tier.toUpperCase() as "PREMIUM" | "ENTERPRISE",
+            valid_until: finalValidUntil.toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (entitlementError) {
+            console.error(
+              `❌ Failed to update entitlements for user ${existingSub.user_id}:`,
+              entitlementError
+            );
+          } else {
+            console.log(
+              `✅ Entitlements updated for user ${
+                existingSub.user_id
+              }, valid until ${finalValidUntil.toISOString()}`
+            );
+          }
+        }
+
+        // Refill AI credits on payment (invoice.paid equivalent)
+        await refillAICredits(existingSub.user_id);
+
+        console.log(
+          `✅ Payment succeeded for user ${existingSub.user_id}, credits refilled`
+        );
         break;
       }
 
@@ -150,16 +313,28 @@ export async function POST(request: NextRequest) {
           | "premium"
           | "enterprise";
         const billingInterval = subscription.notes?.interval || null;
+        const currentPeriodEnd = subscription.current_end
+          ? new Date(subscription.current_end * 1000).toISOString()
+          : null;
 
+        // Update user_subscriptions (Razorpay tracking)
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
-          tier, // Ensure tier is always updated
+          tier,
           status: subscription.status === "active" ? "active" : "cancelled",
-          current_period_end: new Date(
-            subscription.current_end * 1000
-          ).toISOString(),
-          billing_interval: billingInterval, // Save billing interval
+          current_period_end: currentPeriodEnd,
+          billing_interval: billingInterval,
         });
+
+        // Update entitlements if period changed
+        if (currentPeriodEnd && subscription.status === "active") {
+          await (supabase.from("entitlements") as any).upsert({
+            user_id: existingSub.user_id,
+            tier: tier.toUpperCase() as "PREMIUM" | "ENTERPRISE",
+            valid_until: currentPeriodEnd,
+            updated_at: new Date().toISOString(),
+          });
+        }
 
         console.log(`✅ Subscription updated for user ${existingSub.user_id}`);
         break;
@@ -182,16 +357,21 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Downgrade to free tier
+        // Update user_subscriptions (mark as cancelled, but keep subscription ID for reference)
         await (supabase.from("user_subscriptions") as any).upsert({
           user_id: existingSub.user_id,
-          tier: "free",
           status: "cancelled",
-          razorpay_subscription_id: null,
+          cancelled_at: new Date().toISOString(),
+          // Keep tier and razorpay_subscription_id for reference
+          // Don't set tier to "free" here - expiry job will handle downgrade
         });
 
+        // IMPORTANT: DO NOT update entitlements here!
+        // User keeps access until valid_until expires
+        // The expiry job (checkAndDowngradeExpired) will handle downgrade when period ends
+
         console.log(
-          `✅ Subscription cancelled for user ${existingSub.user_id}`
+          `✅ Subscription cancelled for user ${existingSub.user_id} (access continues until period end)`
         );
         break;
       }

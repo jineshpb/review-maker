@@ -321,6 +321,61 @@ export interface Database {
           updated_at?: string;
         };
       };
+      entitlements: {
+        Row: {
+          user_id: string;
+          tier: "FREE" | "PREMIUM" | "ENTERPRISE";
+          valid_from: string;
+          valid_until: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tier: "FREE" | "PREMIUM" | "ENTERPRISE";
+          valid_from?: string;
+          valid_until?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          tier?: "FREE" | "PREMIUM" | "ENTERPRISE";
+          valid_from?: string;
+          valid_until?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      usage_limits: {
+        Row: {
+          user_id: string;
+          ai_credits_remaining: number;
+          monthly_limit: number;
+          refill_at: string | null;
+          free_drafts_remaining: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          ai_credits_remaining?: number;
+          monthly_limit?: number;
+          refill_at?: string | null;
+          free_drafts_remaining?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          ai_credits_remaining?: number;
+          monthly_limit?: number;
+          refill_at?: string | null;
+          free_drafts_remaining?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Create free tier subscription
+      // Create free tier subscription (Razorpay tracking)
       const { data: subscription, error: subError } = await (
         supabase.from("user_subscriptions") as any
       )
@@ -112,15 +112,16 @@ export async function POST(request: NextRequest) {
       if (subError) {
         console.error("Error creating subscription:", subError);
         // Don't fail - user was created, subscription can be retried
-        return NextResponse.json(
-          {
-            success: true,
-            message: "User created but subscription failed",
-            user,
-            subscriptionError: subError.message,
-          },
-          { status: 200 }
-        );
+      }
+
+      // Initialize entitlements (SOURCE OF TRUTH for access)
+      const { initializeEntitlement } = await import("@/lib/entitlements/init");
+      try {
+        await initializeEntitlement(id, "FREE");
+        console.log(`✅ User ${id} created with free tier entitlement`);
+      } catch (entitlementError) {
+        console.error("Error initializing entitlement:", entitlementError);
+        // Don't fail - entitlement can be initialized later
       }
 
       console.log(`✅ User ${id} created with free tier subscription`);

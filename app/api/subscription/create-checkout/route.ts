@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { razorpay, RAZORPAY_PLAN_IDS } from "@/lib/razorpay/config";
 import { createAuthenticatedClient } from "@/lib/supabase/server";
 import { getUserSubscription } from "@/lib/supabase/subscriptions";
+import {
+  hasPremiumAccess,
+  getUserEntitlement,
+} from "@/lib/entitlements/access";
 
 /**
  * POST /api/subscription/create-checkout
@@ -43,37 +47,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already has an active paid subscription
-    const { data: existingSubscription } = await getUserSubscription(request);
+    // Check if user already has active premium access (SOURCE OF TRUTH: entitlements table)
+    const hasActivePremium = await hasPremiumAccess(userId);
 
+    if (hasActivePremium) {
+      // User already has active premium access - check subscription details
+      const entitlement = await getUserEntitlement(userId);
+      const { data: existingSubscription } = await getUserSubscription(request);
+
+      console.log(
+        `⚠️ User ${userId} already has active premium access until ${entitlement?.valid_until}`
+      );
+
+      return NextResponse.json(
+        {
+          error: "Already subscribed",
+          message: `You already have an active premium subscription. Please manage it from your account settings or cancel it before subscribing to a new plan.`,
+          existingSubscription: {
+            tier: entitlement?.tier?.toLowerCase() || "premium",
+            validUntil: entitlement?.valid_until,
+            subscriptionId: (existingSubscription as any)
+              ?.razorpay_subscription_id,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // If user has a cancelled subscription but no active entitlement, allow creating new subscription
+    const { data: existingSubscription } = await getUserSubscription(request);
     if (existingSubscription) {
       const sub = existingSubscription as any;
-      // Check if user already has an ACTIVE premium/enterprise subscription
-      // IMPORTANT: Cancelled subscriptions are allowed - we'll create a NEW subscription
-      // Razorpay doesn't support reactivating cancelled subscriptions
-      if (
-        sub.tier !== "free" &&
-        sub.status === "active" &&
-        sub.razorpay_subscription_id
-      ) {
-        console.log(
-          `⚠️ User ${userId} already has active ${sub.tier} subscription: ${sub.razorpay_subscription_id}`
-        );
-        return NextResponse.json(
-          {
-            error: "Already subscribed",
-            message: `You already have an active ${sub.tier} subscription. Please manage it from your account settings or cancel it before subscribing to a new plan.`,
-            existingSubscription: {
-              tier: sub.tier,
-              status: sub.status,
-              subscriptionId: sub.razorpay_subscription_id,
-            },
-          },
-          { status: 400 }
-        );
-      }
-
-      // If user has a cancelled subscription, log it but allow creating new subscription
       if (
         sub.tier !== "free" &&
         sub.status === "cancelled" &&
@@ -97,21 +101,55 @@ export async function POST(request: NextRequest) {
 
     if (!customerId) {
       // Create Razorpay customer
-      const customer = await razorpay.customers.create({
-        name: user?.username || user?.email || "User",
-        email: user?.email || undefined,
-        notes: {
-          clerk_user_id: userId,
-        },
-      });
+      // In normal operation, if customer doesn't exist in DB, it won't exist in Razorpay either
+      // The "already exists" error only happens if DB was manually cleared but Razorpay still has the customer
+      try {
+        const customer = await razorpay.customers.create({
+          name: user?.username || user?.email || "User",
+          email: user?.email || undefined,
+          notes: {
+            clerk_user_id: userId,
+          },
+        });
 
-      customerId = customer.id;
+        customerId = customer.id;
 
-      // Save customer ID to database
-      await (supabase.from("user_subscriptions") as any).upsert({
-        user_id: userId,
-        razorpay_customer_id: customerId,
-      });
+        // Save customer ID to database
+        await (supabase.from("user_subscriptions") as any).upsert({
+          user_id: userId,
+          razorpay_customer_id: customerId,
+        });
+
+        console.log(`✅ Created new Razorpay customer ${customerId}`);
+      } catch (createError: any) {
+        // Handle "Customer already exists" error (only happens if DB was manually cleared)
+        const errorMessage =
+          createError?.error?.description || createError?.message || "";
+        const isAlreadyExists =
+          errorMessage.includes("already exists") ||
+          errorMessage.includes("Customer already exists");
+
+        if (isAlreadyExists) {
+          console.warn(
+            `⚠️ Customer already exists in Razorpay (DB was likely manually cleared). Proceeding without customer_id - Razorpay will handle it during subscription creation.`
+          );
+          // Don't set customerId - Razorpay will automatically link the subscription to existing customer by email
+          // The customer_id will be saved when the webhook updates the subscription
+        } else {
+          // Some other error - return error
+          console.error("❌ Error creating Razorpay customer:", createError);
+          return NextResponse.json(
+            {
+              error: "Customer creation failed",
+              message:
+                createError?.error?.description ||
+                createError?.message ||
+                "Failed to create customer",
+            },
+            { status: 500 }
+          );
+        }
+      }
     }
 
     // Get plan ID
@@ -138,16 +176,31 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     // Build subscription payload
+    // NOTE: Razorpay requires either total_count OR end_at for subscriptions
+    // According to Razorpay docs: max total_count is 100 cycles
+    // For monthly: 100 cycles = 100 months (~8.3 years) - use total_count
+    // For yearly: 100 cycles = 100 years may exceed limits - use end_at instead
+    // When using end_at, start_at is also required
+    // Reference: https://razorpay.com/docs/api/payments/subscriptions/create-subscription/
     const subscriptionPayload: any = {
       plan_id: planId,
       customer_notify: 1,
-      total_count: interval === "month" ? 12 : 1, // 12 months for monthly, 1 year for yearly
       notes: {
         clerk_user_id: userId,
         tier,
         interval,
       },
     };
+
+    // For yearly plans, use end_at (10 years from now) to avoid duration limit issues
+    // For monthly plans, use total_count: 100 (100 months)
+    if (interval === "year") {
+      const now = Math.floor(Date.now() / 1000);
+      subscriptionPayload.start_at = now; // Required when end_at is present
+      subscriptionPayload.end_at = now + 10 * 365 * 24 * 60 * 60; // 10 years from now (Unix timestamp)
+    } else {
+      subscriptionPayload.total_count = 100; // Maximum allowed (100 months for monthly)
+    }
 
     // Add customer_id if we have one
     if (customerId) {
@@ -373,10 +426,21 @@ export async function POST(request: NextRequest) {
     // IMPORTANT: If user had a cancelled subscription, this will replace it with the new one
     // Razorpay best practice: Create NEW subscription instead of reactivating cancelled ones
     // The old cancelled subscription ID is overwritten with the new subscription ID
+
+    // Get customer_id from subscription response if we don't have it (Razorpay auto-creates/links customer)
+    const finalCustomerId =
+      customerId || (subscriptionData as any).customer_id || null;
+
+    if (!customerId && finalCustomerId) {
+      console.log(
+        `✅ Razorpay auto-linked customer ${finalCustomerId} to subscription`
+      );
+    }
+
     await (supabase.from("user_subscriptions") as any).upsert({
       user_id: userId,
       razorpay_subscription_id: subscriptionData.id, // New subscription ID replaces old cancelled one
-      razorpay_customer_id: customerId,
+      razorpay_customer_id: finalCustomerId, // Use customer_id from subscription if we don't have it
       tier, // Save tier
       billing_interval: interval, // Save billing interval
       status: "pending", // Initial status until webhook confirms activation

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { razorpay } from "@/lib/razorpay/config";
 import { createAuthenticatedClient } from "@/lib/supabase/server";
+import { initializePremiumUsageLimits } from "@/lib/entitlements/usage";
 
 /**
  * POST /api/subscription/sync
@@ -54,7 +55,8 @@ export async function POST(request: NextRequest) {
     } else if (
       razorpayStatus === "cancelled" ||
       razorpayStatus === "paused" ||
-      razorpayStatus === "halted"
+      razorpayStatus === "halted" ||
+      razorpayStatus === "completed" // Completed = all cycles done, treat as cancelled
     ) {
       ourStatus = "cancelled";
     }
@@ -64,6 +66,12 @@ export async function POST(request: NextRequest) {
       | "premium"
       | "enterprise";
     const billingInterval = razorpaySubscription.notes?.interval || null;
+    const currentPeriodStart = razorpaySubscription.start_at
+      ? new Date(razorpaySubscription.start_at * 1000).toISOString()
+      : new Date().toISOString();
+    const currentPeriodEnd = razorpaySubscription.current_end
+      ? new Date(razorpaySubscription.current_end * 1000).toISOString()
+      : null;
 
     // Update subscription in database
     await (supabase.from("user_subscriptions") as any).upsert({
@@ -71,11 +79,78 @@ export async function POST(request: NextRequest) {
       tier,
       status: ourStatus,
       razorpay_subscription_id: razorpaySubscriptionId,
-      current_period_end: razorpaySubscription.current_end
-        ? new Date(razorpaySubscription.current_end * 1000).toISOString()
-        : null,
+      current_period_start: currentPeriodStart,
+      current_period_end: currentPeriodEnd,
       billing_interval: billingInterval,
     });
+
+    // Update entitlements (SOURCE OF TRUTH for access)
+    if (ourStatus === "active" && currentPeriodEnd) {
+      // Get existing entitlement to preserve valid_until if it's later
+      let existingEntitlement = null;
+      try {
+        const { data, error } = await (supabase.from("entitlements") as any)
+          .select("valid_until")
+          .eq("user_id", userId)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          console.error(
+            `Error fetching existing entitlement for user ${userId}:`,
+            error
+          );
+        } else if (data) {
+          existingEntitlement = data;
+        }
+      } catch (err) {
+        console.error(
+          `Exception fetching existing entitlement for user ${userId}:`,
+          err
+        );
+      }
+
+      const existingValidUntil = existingEntitlement?.valid_until
+        ? new Date(existingEntitlement.valid_until)
+        : null;
+      const newValidUntil = new Date(currentPeriodEnd);
+
+      // Use max of existing and new period end (never lose days)
+      const finalValidUntil =
+        existingValidUntil && existingValidUntil > newValidUntil
+          ? existingValidUntil
+          : newValidUntil;
+
+      const { error: entitlementError } = await (
+        supabase.from("entitlements") as any
+      ).upsert({
+        user_id: userId,
+        tier: tier.toUpperCase() as "PREMIUM" | "ENTERPRISE",
+        valid_from: currentPeriodStart,
+        valid_until: finalValidUntil.toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      if (entitlementError) {
+        console.error(
+          `❌ Failed to update entitlements for user ${userId}:`,
+          entitlementError
+        );
+      } else {
+        console.log(
+          `✅ Entitlements synced for user ${userId} with tier ${tier.toUpperCase()}, valid until ${finalValidUntil.toISOString()}`
+        );
+      }
+
+      // Initialize usage limits if not already set
+      try {
+        await initializePremiumUsageLimits(userId, 2000);
+      } catch (usageError) {
+        console.error(
+          `❌ Failed to initialize usage limits for user ${userId}:`,
+          usageError
+        );
+      }
+    }
 
     console.log(
       `✅ Synced subscription ${razorpaySubscriptionId} from Razorpay: ${razorpayStatus} → ${ourStatus}`
@@ -88,6 +163,7 @@ export async function POST(request: NextRequest) {
       ourStatus,
       tier,
       billingInterval,
+      entitlementsUpdated: ourStatus === "active" && currentPeriodEnd !== null,
     });
   } catch (error) {
     console.error("Sync subscription error:", error);
@@ -109,4 +185,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

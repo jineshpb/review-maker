@@ -36,16 +36,48 @@ export default function SubscriptionSuccessPage() {
           }
         }
 
-        // Then fetch updated status
-        const response = await fetch("/api/subscription/status");
-        const data = await response.json();
+        // Poll for entitlement update (webhook may be delayed)
+        let attempts = 0;
+        const maxAttempts = 10; // Poll for up to 10 seconds
+        const pollInterval = 1000; // 1 second
 
-        if (data.subscription) {
-          setSubscription(data.subscription);
-        }
+        const pollForEntitlement = async (): Promise<void> => {
+          const response = await fetch("/api/subscription/status");
+          const data = await response.json();
+
+          // Check if entitlement is active (SOURCE OF TRUTH)
+          if (data.entitlement?.hasActivePremium) {
+            // User has active premium access!
+            setSubscription({
+              ...data.subscription,
+              tier: data.entitlement.tier,
+              validUntil: data.entitlement.validUntil,
+            });
+            setLoading(false);
+            return;
+          }
+
+          // If webhook hasn't arrived yet, keep polling
+          if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(pollForEntitlement, pollInterval);
+          } else {
+            // Max attempts reached, show what we have
+            if (data.subscription) {
+              setSubscription(data.subscription);
+            }
+            setLoading(false);
+            console.warn(
+              "⚠️ Webhook may be delayed. Subscription status:",
+              data
+            );
+          }
+        };
+
+        // Start polling
+        pollForEntitlement();
       } catch (error) {
         console.error("Error checking subscription:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -76,22 +108,30 @@ export default function SubscriptionSuccessPage() {
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Plan:</span>
                 <span className="font-semibold capitalize">
-                  {subscription.tier}
+                  {subscription.tier || "premium"}
                 </span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Status:</span>
-                <span className="font-semibold capitalize">
-                  {subscription.status}
+                <span className="font-semibold capitalize text-green-600">
+                  {subscription.validUntil
+                    ? "Active"
+                    : subscription.status || "Processing..."}
                 </span>
               </div>
-              {subscription.current_period_end && (
+              {(subscription.validUntil || subscription.current_period_end) && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Renews:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Valid Until:
+                  </span>
                   <span className="text-sm">
                     {new Date(
-                      subscription.current_period_end
-                    ).toLocaleDateString()}
+                      subscription.validUntil || subscription.current_period_end
+                    ).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
               )}

@@ -36,7 +36,7 @@ export interface PlanCardProps {
     billing_interval?: string | null;
     current_period_end?: string | null;
   } | null;
-  subscriptionLoading: boolean;
+
   subscriptionStatus?: "active" | "cancelled" | "expired" | null;
   subscriptionCurrentPeriodEnd?: string | null;
   subscriptionBillingInterval?: string | null;
@@ -52,7 +52,6 @@ export const PlanCard = ({
   monthly,
   yearly,
   currentSubscription,
-  subscriptionLoading,
   subscriptionStatus,
   subscriptionCurrentPeriodEnd,
   subscriptionBillingInterval,
@@ -60,12 +59,13 @@ export const PlanCard = ({
   onSubscribe,
   onCancelSubscription,
 }: PlanCardProps) => {
-  // Check if this is the current ACTIVE plan (exclude cancelled subscriptions)
-  // Cancelled subscriptions should show "Subscribe" to reactivate, not "Current Plan"
+  // Check if this is the current ACTIVE plan
+  // For free tier: show "Current Plan" if tier matches and status is "active" or "free"
+  // For premium: show "Current Plan" only if tier matches and status is "active"
   const isCurrentPlan =
-    !subscriptionLoading &&
     currentSubscription?.tier === tier &&
-    subscriptionStatus === "active"; // Only show "Current" for active subscriptions
+    (currentSubscription?.status === "active" ||
+      (tier === "free" && currentSubscription?.status === "free")); // Free tier can be "active" or "free"
 
   const isMonthlyCurrent: boolean = Boolean(
     isCurrentPlan && subscriptionBillingInterval === "month"
@@ -77,10 +77,13 @@ export const PlanCard = ({
   const showDowngradeButton =
     currentSubscription?.tier === "premium" &&
     tier === "free" &&
-    subscriptionStatus === "active"; // Only show if subscription is active (not cancelled)
+    currentSubscription?.status === "active"; // Only show if subscription is active (not cancelled)
 
   const isLoading = (interval: BillingInterval) =>
     loading === `${tier}-${interval}`;
+
+  console.log("Curetn plan and tier", currentSubscription);
+  console.log("isCurrentPlan", isCurrentPlan);
 
   return (
     <div
@@ -126,17 +129,20 @@ export const PlanCard = ({
         )}
       </div>
       <div className="pb-2 flex gap-2">
-        {subscriptionStatus === "cancelled" && tier === "premium" && (
+        {currentSubscription?.status === "cancelled" && tier === "premium" && (
           <div className="text-sm flex items-center gap-1 text-red-700">
             <IoMdClose />
-            <span className="font-medium capitalize">{subscriptionStatus}</span>
+            <span className="font-medium capitalize">
+              {currentSubscription?.status.charAt(0).toUpperCase() +
+                currentSubscription?.status.slice(1)}
+            </span>
           </div>
         )}
         {/* Period End / Renewal Date */}
         {subscriptionCurrentPeriodEnd && tier === "premium" && (
           <div className="text-sm text-muted-foreground">
             <span className="">
-              {subscriptionStatus === "active"
+              {currentSubscription?.status === "active"
                 ? "Renews: "
                 : subscriptionStatus === "cancelled" &&
                   new Date(subscriptionCurrentPeriodEnd) > new Date()
