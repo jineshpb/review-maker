@@ -79,8 +79,9 @@ export async function refillAICredits(
   const supabase = createServerClient();
 
   // Get current limits
-  const { data: current, error: fetchError } = await supabase
-    .from("usage_limits")
+  const { data: current, error: fetchError } = await (
+    supabase.from("usage_limits") as any
+  )
     .select("ai_credits_remaining, monthly_limit")
     .eq("user_id", userId)
     .single();
