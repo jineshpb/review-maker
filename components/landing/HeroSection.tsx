@@ -117,9 +117,8 @@ export const HeroSection = () => {
                         <div className="px-2 py-2 rounded-lg relative">
                           <div className="absolute left-0 top-0 bottom-0 w-[2.25px] bg-white/20 blur-sm" />
                           <p className="text-[12px] font-normal text-white/70 line-clamp-2">
-                            I recently visited Latina Mommy for a family event,
-                            and I must say, it was an outstanding experience
-                            from st
+                            I recently visited La casa for a family event, and I
+                            must say, it was an outstanding experience from st
                           </p>
                         </div>
                         <div className="px-2 py-2 rounded-lg relative">

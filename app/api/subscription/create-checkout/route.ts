@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
           error: "Invalid tier",
           message: "Tier must be 'premium' or 'enterprise'",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
           error: "Invalid interval",
           message: "Interval must be 'month' or 'year'",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       const { data: existingSubscription } = await getUserSubscription(request);
 
       console.log(
-        `⚠️ User ${userId} already has active premium access until ${entitlement?.valid_until}`
+        `⚠️ User ${userId} already has active premium access until ${entitlement?.valid_until}`,
       );
 
       return NextResponse.json(
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
               ?.razorpay_subscription_id,
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         sub.razorpay_subscription_id
       ) {
         console.log(
-          `ℹ️ User ${userId} has cancelled ${sub.tier} subscription. Creating new subscription to reactivate.`
+          `ℹ️ User ${userId} has cancelled ${sub.tier} subscription. Creating new subscription to reactivate.`,
         );
         // We'll create a new subscription - the old cancelled one will be replaced
       }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
         if (isAlreadyExists) {
           console.warn(
-            `⚠️ Customer already exists in Razorpay (DB was likely manually cleared). Proceeding without customer_id - Razorpay will handle it during subscription creation.`
+            `⚠️ Customer already exists in Razorpay (DB was likely manually cleared). Proceeding without customer_id - Razorpay will handle it during subscription creation.`,
           );
           // Don't set customerId - Razorpay will automatically link the subscription to existing customer by email
           // The customer_id will be saved when the webhook updates the subscription
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
                 createError?.message ||
                 "Failed to create customer",
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           error: "Plan not configured",
           message: `Plan ID for ${tier} ${interval} is not configured. Please add RAZORPAY_${tier.toUpperCase()}_${interval.toUpperCase()}_PLAN_ID to .env.local`,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -209,14 +209,13 @@ export async function POST(request: NextRequest) {
 
     console.log(
       "🚀 Creating subscription with payload:",
-      JSON.stringify(subscriptionPayload, null, 2)
+      JSON.stringify(subscriptionPayload, null, 2),
     );
 
     let subscriptionData;
     try {
-      subscriptionData = await razorpay.subscriptions.create(
-        subscriptionPayload
-      );
+      subscriptionData =
+        await razorpay.subscriptions.create(subscriptionPayload);
       console.log("✅ Subscription created:", subscriptionData.id);
     } catch (subError) {
       console.error("❌ Razorpay subscription creation failed:", subError);
@@ -231,7 +230,7 @@ export async function POST(request: NextRequest) {
       // First, check if subscription object has short_url directly
       console.log(
         "📋 Subscription data:",
-        JSON.stringify(subscriptionData, null, 2)
+        JSON.stringify(subscriptionData, null, 2),
       );
 
       // Check all possible fields
@@ -248,14 +247,14 @@ export async function POST(request: NextRequest) {
         console.log("✅ Found URL in subscription object:", checkoutUrl);
       } else {
         console.log(
-          "ℹ️ No URL in subscription object, will create subscription link"
+          "ℹ️ No URL in subscription object, will create subscription link",
         );
       }
 
       // If no URL in subscription, try fetching or creating subscription link
       if (!checkoutUrl) {
         console.log(
-          "🔗 No URL in subscription object, checking for existing links..."
+          "🔗 No URL in subscription object, checking for existing links...",
         );
 
         // First, try to fetch existing subscription links
@@ -266,17 +265,17 @@ export async function POST(request: NextRequest) {
               method: "GET",
               headers: {
                 Authorization: `Basic ${Buffer.from(
-                  `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+                  `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`,
                 ).toString("base64")}`,
               },
-            }
+            },
           );
 
           if (fetchLinksResponse.ok) {
             const linksData = await fetchLinksResponse.json();
             console.log(
               "📋 Existing subscription links:",
-              JSON.stringify(linksData, null, 2)
+              JSON.stringify(linksData, null, 2),
             );
 
             // Check if there are any existing links
@@ -290,7 +289,7 @@ export async function POST(request: NextRequest) {
               if (checkoutUrl) {
                 console.log(
                   "✅ Found existing subscription link:",
-                  checkoutUrl
+                  checkoutUrl,
                 );
               }
             }
@@ -298,7 +297,7 @@ export async function POST(request: NextRequest) {
         } catch (fetchError) {
           console.log(
             "ℹ️ Could not fetch existing links (this is OK if none exist):",
-            fetchError
+            fetchError,
           );
         }
 
@@ -306,7 +305,7 @@ export async function POST(request: NextRequest) {
         if (!checkoutUrl) {
           console.log(
             "🔗 Creating new subscription link for:",
-            subscriptionData.id
+            subscriptionData.id,
           );
 
           // Create subscription link via direct HTTP call
@@ -331,7 +330,7 @@ export async function POST(request: NextRequest) {
 
           console.log(
             "📤 Subscription link payload:",
-            JSON.stringify(linkPayload, null, 2)
+            JSON.stringify(linkPayload, null, 2),
           );
 
           const linkResponse = await fetch(
@@ -341,17 +340,17 @@ export async function POST(request: NextRequest) {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Basic ${Buffer.from(
-                  `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+                  `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`,
                 ).toString("base64")}`,
               },
               body: JSON.stringify(linkPayload),
-            }
+            },
           );
 
           const responseText = await linkResponse.text();
           console.log(
             "📥 Subscription link response status:",
-            linkResponse.status
+            linkResponse.status,
           );
           console.log("📥 Subscription link response body:", responseText);
 
@@ -362,7 +361,7 @@ export async function POST(request: NextRequest) {
             } catch (e) {
               console.error(
                 "❌ Failed to parse subscription link response:",
-                e
+                e,
               );
               linkData = null;
             }
@@ -370,7 +369,7 @@ export async function POST(request: NextRequest) {
             if (linkData) {
               console.log(
                 "✅ Subscription link created:",
-                JSON.stringify(linkData, null, 2)
+                JSON.stringify(linkData, null, 2),
               );
 
               // Try all possible field names for the checkout URL
@@ -388,14 +387,14 @@ export async function POST(request: NextRequest) {
               if (checkoutUrl) {
                 if (checkoutUrl.includes("api.razorpay.com")) {
                   console.error(
-                    "❌ Got API URL instead of checkout URL - this is not a valid checkout page"
+                    "❌ Got API URL instead of checkout URL - this is not a valid checkout page",
                   );
                   console.error("❌ Invalid URL:", checkoutUrl);
                   checkoutUrl = null; // Reject invalid URL
                 } else if (!checkoutUrl.startsWith("https://rzp.io/")) {
                   console.warn(`⚠️ Unexpected URL format: ${checkoutUrl}`);
                   console.warn(
-                    "⚠️ Expected format: https://rzp.io/i/xxx or https://rzp.io/xxx"
+                    "⚠️ Expected format: https://rzp.io/i/xxx or https://rzp.io/xxx",
                   );
                 } else {
                   console.log("✅ Valid checkout URL format:", checkoutUrl);
@@ -433,7 +432,7 @@ export async function POST(request: NextRequest) {
 
     if (!customerId && finalCustomerId) {
       console.log(
-        `✅ Razorpay auto-linked customer ${finalCustomerId} to subscription`
+        `✅ Razorpay auto-linked customer ${finalCustomerId} to subscription`,
       );
     }
 
@@ -452,7 +451,7 @@ export async function POST(request: NextRequest) {
       checkoutUrl.includes("api.razorpay.com/v1/t/subscriptions/")
     ) {
       console.error(
-        "❌ Invalid checkout URL format detected - this will cause redirect issues"
+        "❌ Invalid checkout URL format detected - this will cause redirect issues",
       );
       checkoutUrl = null; // Don't return invalid URL
     }
@@ -462,17 +461,17 @@ export async function POST(request: NextRequest) {
 
     if (!checkoutUrl) {
       console.warn(
-        `⚠️ No valid checkout URL generated for subscription ${subscriptionData.id}`
+        `⚠️ No valid checkout URL generated for subscription ${subscriptionData.id}`,
       );
       console.warn(
-        "⚠️ User will need to complete payment via Razorpay dashboard or contact support"
+        "⚠️ User will need to complete payment via Razorpay dashboard or contact support",
       );
     } else if (subscriptionStatus === "created") {
       console.warn(
-        `⚠️ Subscription is in "created" status - hosted page may not be available until authenticated`
+        `⚠️ Subscription is in "created" status - hosted page may not be available until authenticated`,
       );
       console.warn(
-        "⚠️ This is normal in test mode - subscription will be authenticated after first payment"
+        "⚠️ This is normal in test mode - subscription will be authenticated after first payment",
       );
     }
 
@@ -494,8 +493,8 @@ export async function POST(request: NextRequest) {
         checkoutUrl && subscriptionStatus === "created"
           ? "Subscription is in 'created' status. In test mode, the hosted page may not be immediately available until authenticated. This is normal behavior."
           : checkoutUrl
-          ? null
-          : "Checkout URL not available - subscription link creation may have failed. Please use Razorpay dashboard to complete payment.",
+            ? null
+            : "Checkout URL not available - subscription link creation may have failed. Please use Razorpay dashboard to complete payment.",
       // Note about test mode
       testModeNote: process.env.RAZORPAY_KEY_ID?.startsWith("rzp_test_")
         ? "Test mode: Subscription links may have limitations. Consider using Razorpay Checkout integration for more reliable authentication."
@@ -517,7 +516,7 @@ export async function POST(request: NextRequest) {
             JSON.stringify(razorpayError.error),
           details: razorpayError.error,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -527,7 +526,7 @@ export async function POST(request: NextRequest) {
         message: error instanceof Error ? error.message : String(error),
         details: error,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
