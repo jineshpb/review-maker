@@ -16,12 +16,11 @@ export async function checkAndDowngradeExpired(): Promise<{
   downgraded: number;
   errors: string[];
 }> {
-  const { supabase } = createServerClient();
+  const supabase = createServerClient();
   const errors: string[] = [];
 
   // Find expired premium entitlements
-  const { data: expired, error: fetchError } = await supabase
-    .from("entitlements")
+  const { data: expired, error: fetchError } = await (supabase.from("entitlements") as any)
     .select("user_id")
     .in("tier", ["PREMIUM", "ENTERPRISE"])
     .lt("valid_until", new Date().toISOString());
@@ -41,8 +40,7 @@ export async function checkAndDowngradeExpired(): Promise<{
   for (const entitlement of expired) {
     try {
       // Update entitlement to FREE
-      const { error: updateError } = await supabase
-        .from("entitlements")
+      const { error: updateError } = await (supabase.from("entitlements") as any)
         .update({
           tier: "FREE",
           valid_until: null,
@@ -58,8 +56,7 @@ export async function checkAndDowngradeExpired(): Promise<{
       }
 
       // Reset AI credits
-      const { error: creditsError } = await supabase
-        .from("usage_limits")
+      const { error: creditsError } = await (supabase.from("usage_limits") as any)
         .update({
           ai_credits_remaining: 0,
           monthly_limit: 0,
@@ -95,10 +92,9 @@ export async function checkAndDowngradeExpired(): Promise<{
  * @returns true if entitlement is expired
  */
 export async function isEntitlementExpired(userId: string): Promise<boolean> {
-  const { supabase } = createServerClient();
+  const supabase = createServerClient();
 
-  const { data } = await supabase
-    .from("entitlements")
+  const { data } = await (supabase.from("entitlements") as any)
     .select("tier, valid_until")
     .eq("user_id", userId)
     .single();
