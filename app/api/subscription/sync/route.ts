@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       ourStatus = "active";
     } else if (
       razorpayStatus === "cancelled" ||
-      razorpayStatus === "paused" ||
       razorpayStatus === "halted" ||
       razorpayStatus === "completed" // Completed = all cycles done, treat as cancelled
     ) {
